@@ -62,7 +62,7 @@ Runs formatting, lint, API architecture guards, localization, application/releas
 
 API integration tests start temporary MongoDB replica sets and verify real transactions/indexes. They never connect to the configured `MONGODB_URI`. Vitest is capped at two workers to bound the memory/CPU used by replica sets and Argon2 operations.
 
-The harness uses `mongod` from PATH when present; otherwise it downloads MongoDB **8.0.16** into `.cache/mongodb-binaries`. Override with `MONGOMS_SYSTEM_BINARY` or `MONGOMS_VERSION`. Installation does not trigger a MongoDB postinstall download. First test downloads require network access; replica-set setup has a 240-second hook timeout.
+The harness uses `mongod` from PATH when present; otherwise it downloads MongoDB **8.0.16** into `.cache/mongodb-binaries`. Vitest global setup resolves the executable once before starting parallel test workers, so a cold cache cannot make two suites download/rename the same archive concurrently. Each integration suite still starts its own isolated replica set. Override with `MONGOMS_SYSTEM_BINARY` or `MONGOMS_VERSION`. Installation does not trigger a MongoDB postinstall download. First test downloads require network access; download failures stop global setup before suites run. Replica-set setup retains its 240-second hook timeout.
 
 ### Browser checks
 
