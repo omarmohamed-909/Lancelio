@@ -1,0 +1,59 @@
+/* Shared input and touch policy also applies when zoom creates a narrow layout. */
+@media (pointer: coarse), (max-width: 960px) {
+  .workspace-shell button,
+  .workspace-shell .button,
+  .auth-shell button,
+  .public-proposal-shell button {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  .password-toggle {
+    width: 44px;
+    height: 44px;
+    top: 2px;
+    inset-inline-start: 2px;
+  }
+  .auth-main input,
+  .client-dialog input,
+  .client-dialog textarea,
+  .client-search-input input,
+  .client-contact-filter .ui-select,
+  .proposal-editor input:not([type='hidden']),
+  .proposal-editor textarea,
+  .proposal-editor .ui-select,
+  .proposal-share-controls .ui-select,
+  .proposal-share-link input {
+    font-size: 16px;
+  }
+  .proposal-item,
+  .proposal-item-head {
+    grid-template-columns: minmax(0, 1fr) 96px 128px 44px;
+  }
+}
+@media (max-width: 600px) {
+  .proposal-item {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 44px;
+  }
+}
+
+@media (max-width: 430px) {
+  .proposal-preview-total strong,
+  .proposal-final-total strong {
+    font-size: clamp(20px, 6.5vw, 28px);
+  }
+  .proposal-item {
+    grid-template-columns: minmax(0, 1fr) 44px;
+  }
+  .proposal-item > div:nth-of-type(2) {
+    grid-column: 1;
+    grid-row: 2;
+  }
+  .proposal-item > div:nth-of-type(3) {
+    grid-column: 1 / -1;
+    grid-row: 3;
+  }
+  .proposal-item > .proposal-remove {
+    grid-column: 2;
+    grid-row: 2;
+  }
+}

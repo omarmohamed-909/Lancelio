@@ -1,0 +1,208 @@
+.project-list-toolbar {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 20px;
+  margin: 24px 0 18px;
+}
+.project-list-toolbar label,
+.project-status-form label {
+  display: grid;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--muted);
+}
+.project-list-toolbar .ui-select,
+.project-status-form .ui-select {
+  font: inherit;
+  font-size: 16px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  padding: 10px 12px;
+  min-height: 44px;
+  max-width: 100%;
+  color: var(--ink);
+}
+.project-book {
+  border-block: 1px solid var(--line);
+}
+.project-book ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.project-book li + li {
+  border-top: 1px solid var(--line);
+}
+.project-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto 20px;
+  gap: 24px;
+  align-items: center;
+  padding: 24px 12px;
+  color: var(--ink);
+}
+.project-row:hover {
+  background: var(--surface-soft);
+  text-decoration: none;
+}
+.project-row h2 {
+  font-size: 18px;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+.project-row p {
+  font-size: 13px;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+  margin-top: 8px;
+}
+.project-row p span {
+  font-size: 12px;
+}
+.project-status {
+  display: inline-block;
+  font-size: 12px;
+  padding: 5px 10px;
+  border: 1px solid var(--tone-border, #d6dfc6);
+  background: var(--tone-success-bg, #edf1e3);
+  color: var(--forest);
+  border-radius: 4px;
+}
+.project-status[data-status='on_hold'] {
+  background: var(--tone-warning-bg, #f6efde);
+  color: var(--tone-warning-text, #7c602a);
+  border-color: var(--tone-warning-line, #e9dcb9);
+}
+.project-status[data-status='cancelled'] {
+  background: var(--tone-error-bg, #f5ebe6);
+  color: var(--tone-error-text, #805344);
+  border-color: var(--tone-error-line, #e6d4ca);
+}
+.project-status[data-status='completed'] {
+  background: var(--tone-success-bg, #e6ece6);
+  color: var(--tone-success-text, #436450);
+}
+.project-status-panel {
+  border-block: 1px solid var(--line);
+  padding: 22px 0;
+  margin: 16px 0 30px;
+  display: grid;
+  gap: 20px;
+}
+.project-status-panel > div:first-child {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.project-status-panel h2 {
+  font-size: 18px;
+  font-weight: 500;
+}
+.project-status-panel > p {
+  color: var(--muted);
+  font-size: 13px;
+}
+.project-status-form {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  gap: 16px;
+  align-items: end;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+.project-status-confirm {
+  width: 100%;
+}
+.project-status-confirm p {
+  line-height: 1.85;
+  overflow-wrap: anywhere;
+}
+.project-status-confirm > div {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+}
+.project-agreement-link {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+  margin: 20px 0;
+}
+.project-create {
+  grid-template-columns: minmax(0, 1fr);
+  max-width: 800px;
+}
+.project-create .proposal-paper {
+  margin: 0;
+  min-width: 0;
+}
+.project-create-note {
+  margin: 24px 0;
+}
+.project-create .form-notice a {
+  display: block;
+  margin-top: 12px;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .project-status-confirm {
+    animation: reveal var(--motion-fast) var(--motion-ease) both;
+  }
+}
+@media (max-width: 600px) {
+  .projects-heading {
+    flex-wrap: wrap;
+  }
+  .project-row {
+    grid-template-columns: minmax(0, 1fr) 20px;
+    gap: 14px;
+    padding: 20px 0;
+  }
+  .project-row > .project-status {
+    grid-column: 1;
+    grid-row: 2;
+    justify-self: start;
+  }
+  .project-row > svg {
+    grid-column: 2;
+    grid-row: 1;
+  }
+  .project-list-toolbar {
+    gap: 12px;
+  }
+  .project-status-form label {
+    width: 100%;
+  }
+  .project-status-form .ui-select {
+    width: 100%;
+  }
+}
+
+.project-manual .proposal-document-header {
+  display: block;
+}
+
+.project-update-notice:empty {
+  display: none;
+}
+.project-update-notice {
+  color: var(--ink);
+  margin-block: 0 16px;
+}
+
+.project-status-field {
+  display: grid;
+  gap: 8px;
+}
+@media (max-width: 600px) {
+  .project-status-field {
+    width: 100%;
+  }
+}

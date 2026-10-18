@@ -1,0 +1,28 @@
+{
+  "name": "@lancelio/api",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "assistant:check": "tsx --env-file-if-exists=.env src/main/check-assistant.ts",
+    "dev": "tsx watch --env-file-if-exists=.env src/main/server.ts",
+    "build": "tsc -p tsconfig.build.json",
+    "start": "node --env-file-if-exists=.env dist/main/server.js",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "argon2": "0.45.1",
+    "cors": "2.8.6",
+    "express": "5.2.1",
+    "express-rate-limit": "8.7.1",
+    "helmet": "8.3.0",
+    "jose": "6.2.12",
+    "mongoose": "9.11.0",
+    "zod": "4.6.5"
+  },
+  "devDependencies": {
+    "mongodb-memory-server-core": "11.3.0",
+    "supertest": "7.3.1"
+  }
+}

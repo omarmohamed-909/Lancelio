@@ -1,0 +1,50 @@
+{
+  "name": "lancelio",
+  "version": "0.0.0",
+  "private": true,
+  "workspaces": [
+    "apps/*"
+  ],
+  "engines": {
+    "node": ">=22.20.0 <23",
+    "npm": ">=10 <11"
+  },
+  "scripts": {
+    "assistant:check": "npm run assistant:check --workspace @lancelio/api --",
+    "test:localization": "node --import tsx --test tools/localization.test.ts",
+    "dev:api": "npm run dev --workspace @lancelio/api",
+    "dev:web": "npm run dev --workspace @lancelio/web",
+    "lint": "eslint . --max-warnings=0",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "architecture:check": "node --test tools/architecture.test.mjs",
+    "typecheck": "npm run typecheck --workspaces",
+    "test": "npm run test --workspace @lancelio/api",
+    "build": "npm run build --workspaces",
+    "check": "npm run format:check && npm run lint && npm run architecture:check && npm run test:localization && npm run typecheck && npm run typecheck:release && npm test && npm run build",
+    "test:e2e": "npm run test:e2e --workspace @lancelio/web --",
+    "test:responsive": "npm run test:responsive --workspace @lancelio/web --",
+    "typecheck:release": "tsc -p tools/release/tsconfig.json",
+    "test:release": "playwright test --config apps/web/playwright.release.config.ts",
+    "test:backup": "node --import tsx --test tools/release/backup.test.ts",
+    "db:backup": "tsx tools/release/backup-cli.ts backup",
+    "db:restore": "tsx tools/release/backup-cli.ts restore",
+    "test:api-startup": "node --import tsx --test tools/release/api-startup.test.ts"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@types/cors": "2.8.19",
+    "@types/express": "5.0.6",
+    "@types/node": "26.6.4",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@types/supertest": "7.2.1",
+    "eslint": "10.12.0",
+    "eslint-plugin-react-hooks": "7.1.1",
+    "prettier": "3.9.9",
+    "tsx": "4.23.15",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.71.1",
+    "vitest": "5.0.3"
+  }
+}

@@ -1,0 +1,68 @@
+.list-order {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+.list-order .ui-select {
+  width: 100%;
+  min-height: 46px;
+  padding: 9px 12px;
+  border: 1px solid var(--tone-control, #d6dbcf);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 14px;
+}
+.client-search-filters {
+  grid-template-columns: minmax(0, 1fr) minmax(180px, 235px) 160px;
+}
+.list-preferences-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 18px;
+  min-width: 0;
+}
+.list-preferences-note {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  margin: 0 0 18px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.list-preferences-note button {
+  min-height: 44px;
+}
+.proposal-list-caption:has(.list-order) {
+  align-items: end;
+}
+@media (max-width: 1200px) {
+  .client-search-filters {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+  .client-search-field {
+    grid-column: 1 / -1;
+  }
+}
+@media (max-width: 600px) {
+  .client-search-filters {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 14px;
+  }
+  .list-preferences-controls {
+    flex: 1;
+  }
+  .list-preferences-controls > :is(label, .list-order) {
+    width: 100%;
+  }
+}
+@media (max-width: 960px) {
+  .list-order .ui-select {
+    font-size: 16px;
+  }
+}

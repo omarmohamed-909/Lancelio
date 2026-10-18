@@ -1,0 +1,333 @@
+:root {
+  --motion-fast: 160ms;
+  --motion-enter: 520ms;
+  --motion-interaction: 240ms;
+  --motion-drawer: 260ms;
+  --motion-ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+@keyframes arrive {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 8px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+@keyframes dialog-arrive {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 8px, 0) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+@keyframes item-arrive {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 6px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+@keyframes selection-confirm {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+@keyframes reveal {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes paper-arrive {
+  from {
+    opacity: 0;
+    transform: translate3d(var(--paper-x, 0px), 12px, 0)
+      rotate(calc(var(--paper-angle) - 2deg));
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) rotate(var(--paper-angle));
+  }
+}
+.story-content,
+.auth-form-wrap,
+.dashboard-heading,
+.welcome-panel,
+.section-heading,
+.client-empty {
+  animation: arrive var(--motion-enter) var(--motion-ease) backwards;
+}
+.settings-section-frame {
+  animation: arrive var(--motion-interaction) var(--motion-ease) backwards;
+}
+.confirmation-dialog[open],
+.workspace-command[open],
+.success-toast {
+  animation: arrive var(--motion-interaction) var(--motion-ease) backwards;
+}
+@keyframes skeleton-breathe {
+  from {
+    opacity: 0.55;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.skeleton-block {
+  animation: skeleton-breathe 1200ms ease-in-out infinite alternate;
+}
+.settings-nav-link {
+  transition:
+    background-color var(--motion-fast) ease,
+    border-color var(--motion-fast) ease;
+}
+.auth-form-wrap {
+  animation-delay: 40ms;
+}
+.welcome-panel {
+  animation-delay: 50ms;
+}
+[data-viewport-entered='true'] {
+  animation: surface-arrive 560ms var(--motion-ease) backwards;
+}
+.overview-counts article:nth-child(2)[data-viewport-entered],
+.module-card:nth-child(2)[data-viewport-entered] {
+  animation-delay: 60ms;
+}
+.overview-counts article:nth-child(3)[data-viewport-entered],
+.module-card:nth-child(3)[data-viewport-entered] {
+  animation-delay: 120ms;
+}
+.overview-counts article:nth-child(4)[data-viewport-entered],
+.module-card:nth-child(4)[data-viewport-entered] {
+  animation-delay: 180ms;
+}
+@keyframes surface-arrive {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 18px, 0) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes hero-note-arrive {
+  from {
+    opacity: 0;
+    transform: translateY(20px) rotate(-15deg);
+  }
+  to {
+    opacity: 1;
+    transform: rotate(-9deg);
+  }
+}
+.hero-note {
+  animation: hero-note-arrive 700ms var(--motion-ease) 100ms backwards;
+}
+.hero-stamp {
+  animation: selection-confirm 500ms var(--motion-ease) 300ms backwards;
+}
+.overview-guide[open] .overview-guide-body,
+.overview-guide[open] .overview-guide-explanation {
+  animation: arrive var(--motion-interaction) var(--motion-ease) backwards;
+}
+.task-segment {
+  animation: overview-fill 600ms var(--motion-ease) backwards;
+}
+@keyframes overview-fill {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+.overview-guide > summary > svg,
+.overview-counts a svg,
+.hero-secondary svg {
+  transition: transform var(--motion-interaction) var(--motion-ease);
+}
+.overview-guide-steps button {
+  transition:
+    background var(--motion-fast) ease,
+    border-color var(--motion-fast) ease;
+}
+.desk-paper {
+  animation: paper-arrive 500ms var(--motion-ease) backwards;
+}
+.desk-quote {
+  animation-delay: 80ms;
+}
+.desk-project {
+  animation-delay: 160ms;
+}
+.desk-invoice {
+  animation-delay: 240ms;
+}
+.client-dialog[open] {
+  animation: dialog-arrive var(--motion-interaction) var(--motion-ease)
+    backwards;
+}
+.proposal-item[data-added] {
+  animation: item-arrive var(--motion-interaction) var(--motion-ease) backwards;
+}
+#proposal-client-choices:not([hidden]),
+.proposal-selected-client,
+.proposal-share-link,
+.proposal-response-confirm,
+.proposal-response-complete {
+  animation: reveal var(--motion-interaction) ease-out backwards;
+}
+.proposal-selected-client > svg {
+  animation: selection-confirm var(--motion-interaction) var(--motion-ease) 60ms
+    backwards;
+  transform-origin: center;
+}
+.client-dialog::backdrop {
+  animation: reveal var(--motion-fast) ease-out;
+}
+.form-notice,
+.field-error {
+  animation: arrive var(--motion-fast) ease-out backwards;
+}
+.button,
+.icon-button,
+.password-toggle,
+.nav-item,
+.proposal-text-button,
+.proposal-change-client,
+.proposal-client-options button {
+  transition:
+    background-color var(--motion-fast) ease,
+    color var(--motion-fast) ease,
+    box-shadow var(--motion-fast) ease,
+    transform var(--motion-fast) var(--motion-ease),
+    translate var(--motion-fast) var(--motion-ease);
+}
+.button:active:not(:disabled),
+.icon-button:active:not(:disabled) {
+  transform: scale(0.98);
+}
+.field input,
+.proposal-editor input,
+.proposal-editor textarea {
+  transition:
+    border-color var(--motion-fast) ease,
+    box-shadow var(--motion-fast) ease;
+}
+.field:focus-within label {
+  color: var(--green);
+}
+.field input:focus {
+  border-color: var(--focus);
+}
+.button > .lucide-arrow-left,
+.button > .lucide-arrow-right {
+  transition: transform var(--motion-fast) var(--motion-ease);
+}
+@media (hover: hover) and (pointer: fine) {
+  .button:hover:not(:disabled) > .lucide-arrow-left {
+    transform: translateX(-3px);
+  }
+  .button:hover:not(:disabled) > .lucide-arrow-right {
+    transform: translateX(3px);
+  }
+  .button-primary:hover:not(:disabled) {
+    box-shadow: 0 3px 8px #173e2912;
+  }
+  .module-available {
+    transition:
+      border-color var(--motion-fast) ease,
+      box-shadow var(--motion-interaction) ease,
+      translate var(--motion-interaction) var(--motion-ease);
+  }
+  .module-available:focus-within,
+  .module-available:hover {
+    border-color: var(--tone-border, #b8c4a9);
+    box-shadow: 0 10px 28px #173d3012;
+    translate: 0 -4px;
+  }
+  .overview-counts article {
+    transition:
+      border-color var(--motion-fast) ease,
+      box-shadow var(--motion-interaction) ease,
+      translate var(--motion-interaction) var(--motion-ease);
+  }
+  .overview-counts article:hover {
+    border-color: var(--tone-border, #b8cbb0);
+    box-shadow: 0 10px 28px #173d3012;
+    translate: 0 -4px;
+  }
+  .overview-counts a:hover svg,
+  .hero-secondary:hover svg {
+    transform: translate(-3px, -3px);
+  }
+  .nav-item:hover > svg {
+    transform: translateX(-2px);
+  }
+  .nav-item > svg {
+    transition: transform var(--motion-fast) var(--motion-ease);
+  }
+  .button:hover:not(:disabled) {
+    translate: 0 -2px;
+  }
+}
+@media (max-width: 760px) {
+  .workspace-sidebar {
+    transition:
+      transform var(--motion-drawer) var(--motion-ease),
+      visibility 0s var(--motion-drawer);
+  }
+  .workspace-sidebar.is-open {
+    transition-delay: 0s;
+  }
+  .sidebar-scrim {
+    transition:
+      opacity var(--motion-drawer) ease,
+      visibility 0s var(--motion-drawer);
+  }
+  .sidebar-scrim.is-open {
+    transition-delay: 0s;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .button:hover,
+  .module-available:hover,
+  .module-available:focus-within,
+  .overview-counts article:hover {
+    translate: none;
+  }
+  .button:active:not(:disabled),
+  .icon-button:active:not(:disabled),
+  .nav-item:hover > svg,
+  .overview-counts a:hover svg,
+  .hero-secondary:hover svg,
+  .button:hover:not(:disabled) > .lucide-arrow-left,
+  .button:hover:not(:disabled) > .lucide-arrow-right {
+    transform: none;
+  }
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition-duration: 0s !important;
+    transition-delay: 0s !important;
+    scroll-behavior: auto !important;
+  }
+}

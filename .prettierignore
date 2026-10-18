@@ -1,0 +1,9 @@
+node_modules
+.npm-cache
+.cache
+.next
+dist
+coverage
+package-lock.json
+docs/reference
+**/next-env.d.ts

@@ -1,0 +1,27 @@
+# Example separate API service. Import only after configuring the secrets and
+# reviewing the provider plan. No account, service or deployment is created here.
+services:
+  - type: web
+    name: lancelio-api
+    runtime: node
+    buildCommand: npm ci && npm run build --workspace @lancelio/api
+    startCommand: npm run start --workspace @lancelio/api
+    healthCheckPath: /api/v1/health/ready
+    autoDeployTrigger: off
+    envVars:
+      - key: NODE_VERSION
+        value: 22.20.0
+      - key: NODE_ENV
+        value: production
+      - key: WEB_ORIGIN
+        sync: false
+      - key: MONGODB_URI
+        sync: false
+      - key: JWT_ACCESS_SECRET
+        sync: false
+      - key: EMAIL_PROVIDER
+        value: disabled
+      - key: RESEND_API_KEY
+        sync: false
+      - key: EMAIL_FROM
+        sync: false

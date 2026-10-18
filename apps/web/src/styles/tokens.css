@@ -1,0 +1,18 @@
+:root {
+  --ink: #243b33;
+  --muted: #5b6b61;
+  --green: #24634d;
+  --forest: #173d30;
+  --line: #e1e8df;
+  --paper: #f5f7f2;
+  --surface: #ffffff;
+  --surface-soft: #edf3eb;
+  --mint: #e1efdb;
+  --accent: #80591f;
+  --focus: #47765a;
+  --error: #a33b31;
+  --radius: 16px;
+  --shadow-paper: 0 2px 4px #173d3003, 0 12px 32px #173d3007;
+  --space-page: clamp(24px, 3.2vw, 52px);
+  color-scheme: light;
+}

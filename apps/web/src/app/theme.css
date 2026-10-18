@@ -1,0 +1,165 @@
+:root {
+  --action: #24634d;
+  --action-start: #32785d;
+  --action-hover: #1c402f;
+}
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --ink: #e3eee5;
+  --muted: #b0bfb3;
+  --green: #a8d3b2;
+  --forest: #d4e8da;
+  --line: #35493e;
+  --paper: #101b15;
+  --surface: #19271f;
+  --surface-soft: #213228;
+  --mint: #2b4231;
+  --accent: #efc68b;
+  --focus: #b9dda5;
+  --error: #ffb0a4;
+  --shadow-paper: 0 2px 4px #00000014, 0 12px 32px #00000020;
+  --action: #28684e;
+  --action-start: #317556;
+  --action-hover: #357b59;
+  --tone-border: #455e4e;
+  --tone-control: #586d60;
+  --tone-panel: #213128;
+  --tone-raised: #283c2e;
+  --tone-hover: #253a2d;
+  --tone-paper: #1b2a21;
+  --tone-text: #bacab3;
+  --tone-placeholder: #a2afa4;
+  --tone-success-bg: #233d2c;
+  --tone-success-text: #c2e0aa;
+  --tone-success-line: #4d6941;
+  --tone-warning-bg: #3a3021;
+  --tone-warning-text: #efcb8a;
+  --tone-warning-line: #756240;
+  --tone-error-bg: #3c2826;
+  --tone-error-text: #ffc0ac;
+  --tone-error-line: #755047;
+  --tone-info-bg: #233440;
+  --tone-info-text: #b6d8f6;
+  --tone-violet-bg: #342c41;
+  --tone-violet-text: #d7bdeb;
+  --tone-neutral-bg: #30342d;
+  --tone-neutral-text: #c7ccba;
+  --tone-neutral-line: #555c4a;
+}
+.theme-toggle {
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--green);
+}
+.theme-toggle:hover {
+  background: var(--surface-soft);
+}
+.auth-appearance {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  max-width: 430px;
+  gap: 16px;
+}
+.auth-appearance .mobile-brand {
+  margin: 0;
+  align-self: center;
+}
+.auth-appearance .theme-toggle {
+  margin-inline-start: auto;
+}
+.brand-image-night {
+  display: none;
+}
+[data-theme='dark'] .brand-image-day {
+  display: none;
+}
+[data-theme='dark'] .brand-image-night {
+  display: block;
+}
+.brand-light {
+  color: #f0f5eb;
+}
+.theme-choices {
+  display: grid;
+  gap: 12px;
+}
+.theme-choice {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px;
+  min-height: 86px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  cursor: pointer;
+}
+.theme-choice:has(:checked) {
+  border-color: var(--green);
+  background: var(--surface-soft);
+}
+.theme-choice:hover {
+  background: var(--surface-soft);
+}
+.theme-choice input {
+  accent-color: var(--action);
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  margin: 0;
+}
+.theme-choice:focus-within {
+  outline: 2px solid var(--focus);
+  outline-offset: 3px;
+}
+.theme-choice > svg {
+  color: var(--green);
+}
+.theme-choice strong,
+.theme-choice small {
+  display: block;
+}
+.theme-choice small {
+  color: var(--muted);
+  font-size: 12px;
+  margin-top: 4px;
+}
+[data-theme='dark'] .workspace-sidebar {
+  background: #10241b;
+  border-inline-end-color: #2c4b39;
+}
+[data-theme='dark'] .workspace-topbar {
+  background: #16241fee;
+}
+[data-theme='dark'] .auth-main {
+  background:
+    radial-gradient(ellipse at 0% 0%, #203c2a, transparent 65%), var(--paper);
+}
+/* The illustrated stationery stays on light paper in both appearances. */
+.desk-scene {
+  --forest: #173d30;
+  --ink: #243b33;
+  --muted: #5b6b61;
+}
+[data-theme='dark'] .recovery-progress li[aria-current] > span {
+  background: var(--action);
+}
+.notification-badge {
+  position: absolute;
+  top: 0;
+  inset-inline-end: -2px;
+}
+@media (max-width: 600px) {
+  .workspace-topbar {
+    padding-inline: 12px;
+    gap: 4px;
+  }
+  .theme-choice {
+    padding: 16px;
+    gap: 12px;
+  }
+}
