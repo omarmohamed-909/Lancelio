@@ -1,5 +1,11 @@
 # API contract — authentication, sessions and clients
 
+## Workspace assistant
+
+`GET /api/v1/assistant` returns the authenticated configured mode (`guided`, `gemini`, `openai`), without calling a provider. `POST /api/v1/assistant` requires a valid session and exact web origin. Its strict body accepts `message` (1–1000 characters), optional `history` (up to six questions), optional `conversation` (up to six strict `{ question, answer }` objects, 1000/2000 characters each), and optional `locale` (`ar` or `en`). Identity, names, workspace overrides and unknown fields are rejected; the live session supplies scope and first name. There are twenty requests per minute per member, and responses use `Cache-Control: no-store`.
+
+Replies contain `plan`, nullable `message`, `engine`, `degraded`, nullable `asOf`, bounded `records`, `hasMore`, and nullable `facts`. Plans allow `chat`, `help`, `clarify`, `overview`, `projects`, `receivables` and `search`. Natural conversation and help generate escaped plain text; real data intents return scoped cards and skip text generation. Provider failures return visibly degraded guided help; authentication, database and request failures remain errors. No assistant endpoint writes business records. See [ASSISTANT.md](ASSISTANT.md) for provider data flow, context limits and configuration.
+
 ## Health
 
 `GET /api/v1/health` returns 200 for a running process. `GET /api/v1/health/ready` returns 200 only when the live Mongo connection passes a bounded ping, otherwise 503. Both use `Cache-Control: no-store`; readiness never includes connection strings or provider errors. Use readiness for the hosting health check and liveness for process diagnosis. A fixture without a readiness dependency reports 503.

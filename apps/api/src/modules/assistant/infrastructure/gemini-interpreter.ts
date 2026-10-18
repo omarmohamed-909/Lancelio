@@ -1,11 +1,17 @@
 import { z } from 'zod';
 import type { AssistantInterpreter } from '../application/ask-assistant.js';
-import type { AssistantInput, AssistantPlan } from '../domain/assistant.js';
-import { isAssistantPlan } from '../domain/assistant.js';
+import type {
+  AssistantInput,
+  AssistantPlan,
+  AssistantConversationInput,
+} from '../domain/assistant.js';
+import { isAssistantPlan, isAssistantMessage } from '../domain/assistant.js';
 import {
   AssistantProviderError,
   interpretationInstructions,
   interpretationSchema,
+  conversationInstructions,
+  conversationSchema,
 } from './interpretation-contract.js';
 
 export class GeminiInterpreter implements AssistantInterpreter {
@@ -21,6 +27,48 @@ export class GeminiInterpreter implements AssistantInterpreter {
     input: AssistantInput,
     signal?: AbortSignal,
   ): Promise<AssistantPlan> {
+    const plan = await this.request(
+      interpretationInstructions,
+      interpretationSchema,
+      {
+        previousQuestions: input.history,
+        question: input.message,
+        ...(input.conversation?.length
+          ? { conversation: input.conversation }
+          : {}),
+      },
+      signal,
+    );
+    if (!isAssistantPlan(plan))
+      throw new Error('Invalid assistant interpretation');
+    return plan;
+  }
+
+  async respond(
+    input: AssistantConversationInput,
+    signal?: AbortSignal,
+  ): Promise<string> {
+    const reply = await this.request(
+      conversationInstructions,
+      conversationSchema,
+      input,
+      signal,
+    );
+    if (
+      !reply ||
+      typeof reply !== 'object' ||
+      !isAssistantMessage((reply as Record<string, unknown>).message)
+    )
+      throw new Error('Invalid assistant reply');
+    return (reply as { message: string }).message;
+  }
+
+  private async request(
+    instructions: string,
+    schema: object,
+    input: object,
+    signal?: AbortSignal,
+  ): Promise<unknown> {
     const timeout = AbortSignal.timeout(15000);
     const response = await this.transport(
       'https://generativelanguage.googleapis.com/v1beta/interactions',
@@ -35,11 +83,8 @@ export class GeminiInterpreter implements AssistantInterpreter {
           model: this.model,
           store: false,
           stream: false,
-          system_instruction: interpretationInstructions,
-          input: JSON.stringify({
-            previousQuestions: input.history,
-            question: input.message,
-          }),
+          system_instruction: instructions,
+          input: JSON.stringify(input),
           generation_config: {
             max_output_tokens: 800,
             thinking_level:
@@ -51,7 +96,7 @@ export class GeminiInterpreter implements AssistantInterpreter {
           response_format: {
             type: 'text',
             mime_type: 'application/json',
-            schema: interpretationSchema,
+            schema,
           },
         }),
       },
@@ -82,9 +127,6 @@ export class GeminiInterpreter implements AssistantInterpreter {
       .filter((part) => part.type === 'text')
       .map((part) => part.text ?? '')
       .join('');
-    const plan: unknown = JSON.parse(output);
-    if (!isAssistantPlan(plan))
-      throw new Error('Invalid assistant interpretation');
-    return plan;
+    return JSON.parse(output) as unknown;
   }
 }

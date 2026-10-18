@@ -132,7 +132,10 @@ test('static translation calls are covered by the catalogs', () => {
 
 test('assistant instructions and suggestions have reviewed translations', () => {
   const messages = [
-    ...assistantSuggestions.map((suggestion) => suggestion.label),
+    ...assistantSuggestions.flatMap((suggestion) => [
+      suggestion.label,
+      suggestion.shortLabel,
+    ]),
     ...Object.values(assistantHelp).flatMap((topic) => [
       topic.title,
       topic.action,

@@ -3,6 +3,7 @@ import { request } from '../../../shared/api/http-client';
 
 const plan = z.object({
   intent: z.enum([
+    'chat',
     'help',
     'overview',
     'projects',
@@ -34,6 +35,7 @@ const plan = z.object({
 const currency = z.enum(['EGP', 'USD', 'EUR', 'SAR']);
 const minor = z.string().regex(/^\d+$/u).max(40);
 const reply = z.object({
+  message: z.string().min(1).max(4000).nullable().default(null),
   plan,
   engine: z.enum(['guided', 'openai', 'gemini']),
   degraded: z.boolean(),
@@ -79,6 +81,12 @@ export const assistantApi = {
     message: string,
     history: string[],
     signal: AbortSignal,
+    conversation: { question: string; answer: string }[] = [],
+    locale?: 'ar' | 'en',
   ) =>
-    request('/assistant', reply, { token, signal, body: { message, history } }),
+    request('/assistant', reply, {
+      token,
+      signal,
+      body: { message, history, conversation, locale },
+    }),
 };

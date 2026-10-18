@@ -39,19 +39,19 @@ You can also create projects directly and issue standalone invoices. Payments ar
 
 ## What you can do
 
-| Area                         | What is included                                                                                                                          |
-| ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| **Client book**              | Contact details, literal search, filters and archiving that preserves existing work.                                                      |
-| **Proposals**                | Priced drafts, versioned editing and expiring, revocable sharing links. Acceptance creates a project from the agreed scope.               |
-| **Projects & tasks**         | Project lifecycle, prioritized task boards, stable ordering, completion progress and explicit client visibility.                          |
-| **Invoices & payments**      | Exact monetary totals, numbered invoices, final issued snapshots, partial payments and auditable corrections.                             |
-| **Client portal**            | A reviewed client-facing view of projects, visible tasks and issued invoice balances, protected by revocable links.                       |
-| **Workspace overview**       | Real counts, task progress and invoiced, received and outstanding totals kept separate by currency.                                       |
-| **Work assistant**           | Product guidance, scoped search, project queries and balances. Guided mode works without a key; Gemini or OpenAI can interpret questions. |
-| **Notifications & settings** | Activity inbox, individual read state, profile, password and workspace settings.                                                          |
-| **A familiar interface**     | Arabic/English, automatic initial language selection, RTL/LTR, light/dark appearance and responsive layouts with reduced-motion support.  |
+| Area                         | What is included                                                                                                                                                                 |
+| ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Client book**              | Contact details, literal search, filters and archiving that preserves existing work.                                                                                             |
+| **Proposals**                | Priced drafts, versioned editing and expiring, revocable sharing links. Acceptance creates a project from the agreed scope.                                                      |
+| **Projects & tasks**         | Project lifecycle, prioritized task boards, stable ordering, completion progress and explicit client visibility.                                                                 |
+| **Invoices & payments**      | Exact monetary totals, numbered invoices, final issued snapshots, partial payments and auditable corrections.                                                                    |
+| **Client portal**            | A reviewed client-facing view of projects, visible tasks and issued invoice balances, protected by revocable links.                                                              |
+| **Workspace overview**       | Real counts, task progress and invoiced, received and outstanding totals kept separate by currency.                                                                              |
+| **Work assistant**           | Natural Arabic/English conversation with Gemini or OpenAI, personalized greetings and temporary context. Product help and scoped queries also work in guided mode without a key. |
+| **Notifications & settings** | Activity inbox, individual read state, profile, password and workspace settings.                                                                                                 |
+| **A familiar interface**     | Arabic/English, automatic initial language selection, RTL/LTR, light/dark appearance and responsive layouts with reduced-motion support.                                         |
 
-The assistant replies in the question's language. It can explain and read supported workspace data; it cannot create, edit, issue or send records.
+The assistant replies in the question's language, can brainstorm and draft text, and reads supported workspace data through scoped cards. It cannot create, edit, issue or send records. Intelligent conversation sends your first name, questions and limited reply excerpts to the selected provider; database records are not sent.
 
 ## A look inside
 

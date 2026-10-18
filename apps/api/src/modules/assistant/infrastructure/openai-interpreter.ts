@@ -1,12 +1,18 @@
 import { z } from 'zod';
-import { isAssistantPlan } from '../domain/assistant.js';
-import type { AssistantInput, AssistantPlan } from '../domain/assistant.js';
+import { isAssistantPlan, isAssistantMessage } from '../domain/assistant.js';
+import type {
+  AssistantInput,
+  AssistantPlan,
+  AssistantConversationInput,
+} from '../domain/assistant.js';
 import type { AssistantInterpreter } from '../application/ask-assistant.js';
 
 import {
   AssistantProviderError,
   interpretationInstructions,
   interpretationSchema,
+  conversationInstructions,
+  conversationSchema,
 } from './interpretation-contract.js';
 
 export class OpenAIInterpreter implements AssistantInterpreter {
@@ -20,6 +26,49 @@ export class OpenAIInterpreter implements AssistantInterpreter {
     input: AssistantInput,
     signal?: AbortSignal,
   ): Promise<AssistantPlan> {
+    const plan = await this.request(
+      interpretationInstructions,
+      interpretationSchema,
+      'lancelio_question',
+      {
+        previousQuestions: input.history,
+        question: input.message,
+        ...(input.conversation?.length
+          ? { conversation: input.conversation }
+          : {}),
+      },
+      signal,
+    );
+    if (!isAssistantPlan(plan))
+      throw new Error('Invalid assistant interpretation');
+    return plan;
+  }
+  async respond(
+    input: AssistantConversationInput,
+    signal?: AbortSignal,
+  ): Promise<string> {
+    const reply = await this.request(
+      conversationInstructions,
+      conversationSchema,
+      'lancelio_reply',
+      input,
+      signal,
+    );
+    if (
+      !reply ||
+      typeof reply !== 'object' ||
+      !isAssistantMessage((reply as Record<string, unknown>).message)
+    )
+      throw new Error('Invalid assistant reply');
+    return (reply as { message: string }).message;
+  }
+  private async request(
+    instructions: string,
+    schema: object,
+    name: string,
+    input: object,
+    signal?: AbortSignal,
+  ): Promise<unknown> {
     const timeout = AbortSignal.timeout(8000);
     const response = await this.transport(
       'https://api.openai.com/v1/responses',
@@ -34,22 +83,19 @@ export class OpenAIInterpreter implements AssistantInterpreter {
           model: this.model,
           store: false,
           max_output_tokens: 800,
-          instructions: interpretationInstructions,
+          instructions,
           input: [
             {
               role: 'user',
-              content: JSON.stringify({
-                previousQuestions: input.history,
-                question: input.message,
-              }),
+              content: JSON.stringify(input),
             },
           ],
           text: {
             format: {
               type: 'json_schema',
-              name: 'lancelio_question',
+              name,
               strict: true,
-              schema: interpretationSchema,
+              schema,
             },
           },
         }),
@@ -81,9 +127,6 @@ export class OpenAIInterpreter implements AssistantInterpreter {
       .filter((item) => item.type === 'output_text')
       .map((item) => item.text ?? '')
       .join('');
-    const plan: unknown = JSON.parse(output);
-    if (!isAssistantPlan(plan))
-      throw new Error('Invalid assistant interpretation');
-    return plan;
+    return JSON.parse(output) as unknown;
   }
 }

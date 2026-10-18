@@ -1,12 +1,18 @@
 import { ApplicationError } from '../../../shared/domain/application-error.js';
 import { validateId } from '../../../shared/domain/identifiers.js';
-import { isAssistantPlan } from '../domain/assistant.js';
+import { isAssistantPlan, isAssistantMessage } from '../domain/assistant.js';
+import {
+  conversationLocale,
+  firstName,
+  guidedGreeting,
+} from '../domain/conversation.js';
 import type {
   AssistantInput,
   AssistantPlan,
   AssistantResult,
   AssistantRecord,
   AssistantFacts,
+  AssistantConversationInput,
 } from '../domain/assistant.js';
 
 export interface AssistantInterpreter {
@@ -15,6 +21,10 @@ export interface AssistantInterpreter {
     input: AssistantInput,
     signal?: AbortSignal,
   ): Promise<AssistantPlan>;
+  respond?(
+    input: AssistantConversationInput,
+    signal?: AbortSignal,
+  ): Promise<string>;
 }
 export interface AssistantReader {
   overview(scope: string): Promise<{ asOf: string; facts: AssistantFacts }>;
@@ -46,6 +56,7 @@ export class AskAssistant {
     workspace: string,
     input: AssistantInput,
     signal?: AbortSignal,
+    actor?: { displayName: string },
   ): Promise<AssistantResult> {
     const scope = validateId(workspace);
     if (
@@ -53,7 +64,19 @@ export class AskAssistant {
       input.message.length > 1000 ||
       /[\u0000-\u0008\u000b\u000c\u000e-\u001f]/u.test(input.message) ||
       input.history.length > 6 ||
-      input.history.some((m) => !m.trim() || m.length > 1000)
+      input.history.some((m) => !m.trim() || m.length > 1000) ||
+      (input.locale !== undefined && !['ar', 'en'].includes(input.locale)) ||
+      (input.conversation?.length ?? 0) > 6 ||
+      input.conversation?.some(
+        (turn) =>
+          !turn.question.trim() ||
+          turn.question.length > 1000 ||
+          !turn.answer.trim() ||
+          turn.answer.length > 2000 ||
+          /[\u0000-\u0008\u000b\u000c\u000e-\u001f]/u.test(
+            turn.question + turn.answer,
+          ),
+      )
     )
       throw new ApplicationError(
         'VALIDATION_ERROR',
@@ -75,7 +98,37 @@ export class AskAssistant {
     } else plan = await this.guided.interpret(input, signal);
     if (!isAssistantPlan(plan)) throw new Error('Invalid assistant plan');
     if (signal?.aborted) throw new Error('Assistant request cancelled');
+    const name = firstName(actor?.displayName ?? '');
+    let message = plan.intent === 'chat' ? guidedGreeting(input, name) : null;
+    if (
+      !degraded &&
+      this.intelligent?.respond &&
+      ['chat', 'help', 'clarify'].includes(plan.intent)
+    ) {
+      try {
+        const generated = await this.intelligent.respond(
+          {
+            question: input.message,
+            previousQuestions: input.history,
+            conversation: input.conversation ?? [],
+            firstName: name,
+            locale: conversationLocale(input),
+            plan,
+          },
+          signal,
+        );
+        if (!isAssistantMessage(generated))
+          throw new Error('Invalid assistant message');
+        message = generated.trim();
+      } catch (error) {
+        if (signal?.aborted) throw error;
+        degraded = true;
+        engine = 'guided';
+      }
+    }
+    if (signal?.aborted) throw new Error('Assistant request cancelled');
     const result: AssistantResult = {
+      message,
       plan,
       engine,
       degraded,

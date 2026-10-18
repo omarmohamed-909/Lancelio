@@ -1,9 +1,17 @@
 'use client';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react';
 import type { FormEvent } from 'react';
 import { usePathname } from 'next/navigation';
 import {
   ChartNoAxesCombined,
+  ArrowDown,
+  ChevronDown,
   CircleHelp,
   FolderKanban,
   LoaderCircle,
@@ -53,12 +61,14 @@ export function WorkspaceAssistant() {
   return (
     <Assistant
       key={snapshot.identity.workspace.id + ':' + snapshot.identity.user.id}
+      displayName={snapshot.identity.user.name}
     />
   );
 }
 
-function Assistant() {
+function Assistant({ displayName }: { displayName: string }) {
   const { t, intlLocale, locale } = useI18n();
+  const firstName = displayName.trim().split(/\s+/u)[0] ?? '';
   const { manager } = useSession();
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<
@@ -67,23 +77,36 @@ function Assistant() {
   const [turns, setTurns] = useState<Turn[]>([]);
   const [draft, setDraft] = useState('');
   const [attempt, setAttempt] = useState(0);
+  const [showLatest, setShowLatest] = useState(false);
   const dialog = useRef<HTMLDialogElement>(null);
   const launcher = useRef<HTMLButtonElement>(null);
   const input = useRef<HTMLTextAreaElement>(null);
   const transcript = useRef<HTMLDivElement>(null);
   const active = useRef<AbortController | null>(null);
+  const savedScroll = useRef(0);
+  const followLatest = useRef(true);
+  const scrollToTurn = useRef<string | null>(null);
+  const wasOpen = useRef(false);
   const pending = turns.some((turn) => turn.pending);
-  const close = useCallback(() => setOpen(false), []);
+  const close = useCallback(() => {
+    if (transcript.current) savedScroll.current = transcript.current.scrollTop;
+    setOpen(false);
+  }, []);
   useEffect(() => () => active.current?.abort(), []);
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!open) return;
     const element = dialog.current;
     const trigger = launcher.current;
+    const scroller = transcript.current;
     element?.showModal();
-    input.current?.focus();
+    input.current?.focus({ preventScroll: true });
+    if (scroller)
+      scroller.scrollTop = scroller.querySelector('.assistant-turn')
+        ? savedScroll.current
+        : 0;
     return () => {
       element?.close();
-      trigger?.focus();
+      trigger?.focus({ preventScroll: true });
     };
   }, [open]);
   useEffect(() => {
@@ -99,10 +122,50 @@ function Assistant() {
       });
     return () => controller.abort();
   }, [open, mode, manager, attempt]);
-  useEffect(() => {
-    if (open && transcript.current)
-      transcript.current.scrollTop = transcript.current.scrollHeight;
-  }, [turns, open]);
+  const trackScroll = useCallback(() => {
+    const element = transcript.current;
+    if (!element) return;
+    savedScroll.current = element.scrollTop;
+    const away =
+      element.scrollHeight - element.clientHeight - element.scrollTop > 64;
+    followLatest.current = !away;
+    setShowLatest(away);
+  }, []);
+  useLayoutEffect(() => {
+    if (!open) {
+      wasOpen.current = false;
+      return;
+    }
+    const element = transcript.current;
+    if (!element) return;
+    if (turns.length === 0) element.scrollTop = 0;
+    else if (
+      wasOpen.current &&
+      (scrollToTurn.current || followLatest.current)
+    ) {
+      const targets = [
+        ...element.querySelectorAll<HTMLElement>('.assistant-turn'),
+      ];
+      const target = scrollToTurn.current
+        ? targets.find((turn) => turn.dataset.turnId === scrollToTurn.current)
+        : targets.at(-1);
+      if (target)
+        element.scrollTop =
+          target === targets[0]
+            ? 0
+            : Math.max(
+                0,
+                element.scrollTop +
+                  target.getBoundingClientRect().top -
+                  element.getBoundingClientRect().top -
+                  16,
+              );
+    }
+    wasOpen.current = true;
+    scrollToTurn.current = null;
+    const frame = requestAnimationFrame(trackScroll);
+    return () => cancelAnimationFrame(frame);
+  }, [turns, open, trackScroll]);
 
   async function send(question: string, retryId?: string) {
     const text = question.trim();
@@ -116,7 +179,7 @@ function Assistant() {
     )
       return;
     const id = retryId ?? crypto.randomUUID();
-    const history = (
+    const previous = (
       retryId
         ? turns.slice(
             0,
@@ -125,10 +188,24 @@ function Assistant() {
         : turns
     )
       .filter((turn) => turn.reply !== null)
-      .slice(-6)
-      .map((turn) => turn.question);
+      .slice(-6);
+    const history = previous.map((turn) => turn.question);
+    const conversation = previous.flatMap((turn) =>
+      turn.reply?.message && turn.reply.engine !== 'guided'
+        ? [
+            {
+              question: turn.question,
+              answer: turn.reply.message.slice(0, 2000),
+            },
+          ]
+        : [],
+    );
+    const replyLocale = retryId
+      ? (turns.find((turn) => turn.id === retryId)?.locale ?? locale)
+      : answerLanguage(text, previous.at(-1)?.locale ?? locale);
     const controller = new AbortController();
     active.current = controller;
+    scrollToTurn.current = id;
     setTurns((current) =>
       retryId
         ? current.map((turn) =>
@@ -139,11 +216,7 @@ function Assistant() {
             {
               id,
               question: text,
-              locale: answerLanguage(
-                text,
-                turns.filter((turn) => turn.reply !== null).at(-1)?.locale ??
-                  locale,
-              ),
+              locale: replyLocale,
               reply: null,
               error: null,
               pending: true,
@@ -153,7 +226,14 @@ function Assistant() {
     if (!retryId) setDraft('');
     try {
       const reply = await manager.authorized((token) =>
-        assistantApi.ask(token, text, history, controller.signal),
+        assistantApi.ask(
+          token,
+          text,
+          history,
+          controller.signal,
+          conversation,
+          replyLocale,
+        ),
       );
       if (!controller.signal.aborted) {
         if (!reply.degraded) setMode(reply.engine);
@@ -194,11 +274,15 @@ function Assistant() {
   }
   function newConversation() {
     stop();
+    savedScroll.current = 0;
+    followLatest.current = true;
+    scrollToTurn.current = null;
+    setShowLatest(false);
     setTurns([]);
     setDraft('');
     setMode(null);
     setAttempt((value) => value + 1);
-    requestAnimationFrame(() => input.current?.focus());
+    requestAnimationFrame(() => input.current?.focus({ preventScroll: true }));
   }
   function submit(event: FormEvent) {
     event.preventDefault();
@@ -249,7 +333,7 @@ function Assistant() {
             if (event.key !== 'Tab') return;
             const controls = [
               ...event.currentTarget.querySelectorAll<HTMLElement>(
-                'button:not(:disabled), a[href], textarea:not(:disabled), select:not(:disabled), [tabindex="0"]',
+                'button:not(:disabled), a[href], textarea:not(:disabled), select:not(:disabled), summary, [tabindex="0"]',
               ),
             ].filter((element) => element.getClientRects().length > 0);
             const first = controls[0],
@@ -293,7 +377,7 @@ function Assistant() {
             <span className="assistant-mode-dot" />
             <span className="assistant-mode-text">
               {mode === 'openai' || mode === 'gemini'
-                ? t('فهم ذكي للأسئلة')
+                ? t('محادثة ذكية')
                 : mode === 'guided'
                   ? t('إرشادات واستعلامات محددة · الفهم الذكي لسه غير مفعّل')
                   : mode === 'unavailable'
@@ -301,122 +385,169 @@ function Assistant() {
                     : t('بنوصل بمساعدك…')}
             </span>
           </div>
-          <div
-            ref={transcript}
-            className="assistant-transcript"
-            role="log"
-            aria-label={t('محادثتك مع المساعد')}
-            aria-live="polite"
-            aria-relevant="additions text"
-            tabIndex={0}
-          >
-            {turns.length === 0 && (
-              <section className="assistant-welcome">
-                <span className="assistant-welcome-icon">
-                  <MessageCircleMore size={30} aria-hidden="true" />
-                </span>
-                <span className="form-eyebrow">
-                  LANCELIO / {t('معاك في الشغل')}
-                </span>
-                <h3>{t('خطوتك الجاية أوضح.')}</h3>
-                <p>
-                  {t(
-                    'اسأل عن استخدام الموقع، أو اطلب ملخص شغلك والمشاريع والمستحقات.',
-                  )}
-                </p>
-                <div className="assistant-suggestions">
-                  {assistantSuggestions.map((suggestion) => {
-                    const Icon = icons[suggestion.icon];
-                    return (
-                      <button
-                        key={suggestion.icon}
-                        type="button"
-                        disabled={mode === null || mode === 'unavailable'}
-                        onClick={() => {
-                          void send(t(suggestion.label));
-                        }}
-                      >
-                        <Icon size={18} aria-hidden="true" />
-                        <span>{t(suggestion.label)}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-                <p className="assistant-welcome-footnote">
-                  {t(
-                    'الإجابات من مساحة عملك الحالية. المحادثة مؤقتة في التبويب ده، وبتتمسح عند تحديث الصفحة أو تسجيل الخروج.',
-                  )}
-                </p>
-              </section>
-            )}
-            {turns.map((turn) => {
-              const replyLocale = turn.locale ?? locale;
-              const replyText = (message: string) =>
-                translate(replyLocale, message);
-              return (
-                <div className="assistant-turn" key={turn.id}>
-                  <div className="assistant-question">
-                    <span className="sr-only">{t('أنت')}</span>
-                    <p dir="auto">{turn.question}</p>
-                  </div>
-                  <div
-                    className="assistant-message"
-                    lang={replyLocale}
-                    dir={replyLocale === 'ar' ? 'rtl' : 'ltr'}
-                  >
-                    <span className="assistant-message-icon">
-                      <MessageCircleMore size={17} aria-hidden="true" />
+          <div className="assistant-thread">
+            <div
+              ref={transcript}
+              className="assistant-transcript"
+              role="log"
+              aria-label={t('محادثتك مع المساعد')}
+              aria-live="polite"
+              aria-relevant="additions text"
+              tabIndex={0}
+              onScroll={trackScroll}
+            >
+              {turns.length === 0 && (
+                <section className="assistant-welcome">
+                  <div className="assistant-welcome-heading">
+                    <span className="assistant-welcome-icon">
+                      <MessageCircleMore size={22} aria-hidden="true" />
                     </span>
-                    <div>
-                      {turn.pending ? (
-                        <p className="assistant-pending" role="status">
-                          <LoaderCircle
-                            size={16}
-                            className="spin"
-                            aria-hidden="true"
-                          />
-                          {replyText('براجع سؤالك…')}
-                        </p>
-                      ) : turn.reply ? (
-                        <AssistantAnswer
-                          reply={turn.reply}
-                          close={close}
-                          locale={replyLocale}
-                        />
-                      ) : (
-                        <div className="assistant-error">
-                          <p
-                            role={
-                              turn.error === 'cancelled' ? 'status' : 'alert'
-                            }
-                          >
-                            {turn.error === 'cancelled'
-                              ? replyText('الطلب اتوقف.')
-                              : turn.error === 'limited'
-                                ? replyText(
-                                    'وصلت لحد الأسئلة الحالي. استنى دقيقة وجرب تاني.',
-                                  )
-                                : replyText(
-                                    'مش قادرين نجيب الرد دلوقتي. سؤالك محفوظ، جرّب تاني.',
-                                  )}
-                          </p>
-                          <button
-                            type="button"
-                            className="text-button"
-                            disabled={pending}
-                            onClick={() => {
-                              void send(turn.question, turn.id);
-                            }}
-                          >
-                            {replyText('إعادة المحاولة')}
-                          </button>
-                        </div>
+                    <h3>
+                      {firstName
+                        ? t('أهلًا يا {0} 👋').replace('{0}', firstName)
+                        : t('أهلًا بيك 👋')}
+                    </h3>
+                  </div>
+                  <p>
+                    {t(
+                      'اتكلم براحتك، فكّر معايا، أو اسألني عن Lancelio وشغلك.',
+                    )}
+                  </p>
+                  <div className="assistant-suggestions">
+                    {assistantSuggestions.map((suggestion) => {
+                      const Icon = icons[suggestion.icon];
+                      return (
+                        <button
+                          key={suggestion.icon}
+                          type="button"
+                          aria-label={t(suggestion.label)}
+                          disabled={mode === null || mode === 'unavailable'}
+                          onClick={() => {
+                            void send(t(suggestion.label));
+                          }}
+                        >
+                          <Icon size={17} aria-hidden="true" />
+                          <span>{t(suggestion.shortLabel)}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <details className="assistant-privacy">
+                    <summary>
+                      {t('عن المحادثة والخصوصية')}
+                      <ChevronDown size={15} aria-hidden="true" />
+                    </summary>
+                    <p className="assistant-welcome-footnote">
+                      {t(
+                        'المحادثة مؤقتة وبتتمسح مع تحديث الصفحة أو تسجيل الخروج. بيانات الشغل من مساحتك الحالية.',
                       )}
+                    </p>
+                    {(mode === 'gemini' || mode === 'openai') && (
+                      <p className="assistant-welcome-footnote">
+                        {t(
+                          'للمحادثة الذكية بنبعت اسمك الأول وأسئلتك ومقتطفات من الردود لمزوّد الذكاء الاصطناعي. سجلات الشغل لا تُرسل.',
+                        )}
+                      </p>
+                    )}
+                  </details>
+                </section>
+              )}
+              {turns.map((turn) => {
+                const replyLocale = turn.locale ?? locale;
+                const replyText = (message: string) =>
+                  translate(replyLocale, message);
+                return (
+                  <div
+                    className="assistant-turn"
+                    key={turn.id}
+                    data-turn-id={turn.id}
+                  >
+                    <div className="assistant-question">
+                      <span className="sr-only">{t('أنت')}</span>
+                      <p dir="auto">{turn.question}</p>
+                    </div>
+                    <div
+                      className="assistant-message"
+                      lang={replyLocale}
+                      dir={replyLocale === 'ar' ? 'rtl' : 'ltr'}
+                    >
+                      <span className="assistant-message-icon">
+                        <MessageCircleMore size={17} aria-hidden="true" />
+                      </span>
+                      <div>
+                        {turn.pending ? (
+                          <p className="assistant-pending" role="status">
+                            <LoaderCircle
+                              size={16}
+                              className="spin"
+                              aria-hidden="true"
+                            />
+                            {replyText('براجع سؤالك…')}
+                          </p>
+                        ) : turn.reply ? (
+                          <AssistantAnswer
+                            reply={turn.reply}
+                            close={close}
+                            locale={replyLocale}
+                          />
+                        ) : (
+                          <div className="assistant-error">
+                            <p
+                              role={
+                                turn.error === 'cancelled' ? 'status' : 'alert'
+                              }
+                            >
+                              {turn.error === 'cancelled'
+                                ? replyText('الطلب اتوقف.')
+                                : turn.error === 'limited'
+                                  ? replyText(
+                                      'وصلت لحد الأسئلة الحالي. استنى دقيقة وجرب تاني.',
+                                    )
+                                  : replyText(
+                                      'مش قادرين نجيب الرد دلوقتي. سؤالك محفوظ، جرّب تاني.',
+                                    )}
+                            </p>
+                            <button
+                              type="button"
+                              className="text-button"
+                              disabled={pending}
+                              onClick={() => {
+                                void send(turn.question, turn.id);
+                              }}
+                            >
+                              {replyText('إعادة المحاولة')}
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
+            {turns.length > 0 && showLatest && (
+              <button
+                type="button"
+                className="assistant-jump"
+                onClick={() => {
+                  const element = transcript.current;
+                  if (element) {
+                    element.focus({ preventScroll: true });
+                    element.scrollTo({
+                      top: element.scrollHeight,
+                      behavior: window.matchMedia(
+                        '(prefers-reduced-motion: reduce)',
+                      ).matches
+                        ? 'instant'
+                        : 'smooth',
+                    });
+                  }
+                }}
+              >
+                <ArrowDown size={16} aria-hidden="true" />
+                {t('آخر الرسائل')}
+              </button>
+            )}
           </div>
           <form className="assistant-composer" onSubmit={submit}>
             {mode === 'unavailable' && (

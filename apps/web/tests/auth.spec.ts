@@ -11283,6 +11283,128 @@ test('assistant replies in the question language while keeping interface and sav
   });
 });
 
+test('assistant chats naturally with a personalized welcome, temporary reply context and escaped generated text', async ({
+  page,
+}) => {
+  test.setTimeout(90000);
+  await register(page);
+  await page
+    .getByRole('button', { name: 'افتح مساعد Lancelio', exact: true })
+    .click();
+  const chat = page.locator('.assistant-dialog');
+  const composer = chat.locator('#assistant-question');
+  await expect(
+    chat.getByRole('heading', { name: 'أهلًا يا أحمد 👋', exact: true }),
+  ).toBeVisible();
+  await expect(chat.locator('.assistant-mode')).toContainText('إرشادات');
+  await composer.fill('ازيك');
+  await composer.press('Enter');
+  await expect(chat.locator('.assistant-prose')).toContainText('يا أحمد');
+  const requests: {
+    message: string;
+    history: string[];
+    conversation: { question: string; answer: string }[];
+    locale: string;
+  }[] = [];
+  const generated = [
+    'ابدأ بمهمتين بس: مراجعة عرض السعر، وبعدها الفاتورة.\n\nتحب نرتبهم حسب موعد التسليم؟',
+    'راجع عرض السعر الأول، وبعدها اكتب مسودة رسالة للعميل.',
+    '<img src=x onerror="alert(1)">\n\nStart with the task due first.',
+  ];
+  await page.route('**/api/v1/assistant', async (route) => {
+    if (route.request().method() === 'GET')
+      return route.fulfill({
+        json: { success: true, data: { mode: 'gemini' } },
+      });
+    requests.push(route.request().postDataJSON());
+    return route.fulfill({
+      json: {
+        success: true,
+        data: {
+          message: generated[requests.length - 1] ?? 'تمام، نبدأ من جديد.',
+          plan: {
+            intent: 'chat',
+            topic: 'navigation',
+            status: 'open',
+            query: '',
+          },
+          engine: 'gemini',
+          degraded: false,
+          asOf: null,
+          records: [],
+          hasMore: false,
+          facts: null,
+        },
+      },
+    });
+  });
+  await composer.fill('لو عندي ساعتين بس للشغل أرتبهم إزاي؟');
+  await composer.press('Enter');
+  await expect(chat.locator('.assistant-prose').last().locator('p')).toHaveText(
+    generated[0]!.split('\n\n'),
+  );
+  await composer.fill('طب أبدأ بأنهي واحدة؟');
+  await composer.press('Enter');
+  await expect(chat.locator('.assistant-prose').last()).toContainText(
+    'راجع عرض السعر الأول',
+  );
+  expect(requests[1]).toEqual({
+    message: 'طب أبدأ بأنهي واحدة؟',
+    history: ['ازيك', 'لو عندي ساعتين بس للشغل أرتبهم إزاي؟'],
+    conversation: [{ question: requests[0]!.message, answer: generated[0] }],
+    locale: 'ar',
+  });
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(
+    (await inspectResponsiveLayout(page, 'assistant-conversation', true, 390))
+      .issues,
+  ).toEqual([]);
+  await chat.screenshot({
+    path: resolve(
+      import.meta.dirname,
+      '../../../.cache/ui/assistant/natural-conversation.png',
+    ),
+    animations: 'disabled',
+  });
+  await composer.fill('Can you explain that in English?');
+  await composer.press('Enter');
+  const prose = chat.locator('.assistant-prose').last();
+  await expect(prose).toContainText('<img src=x onerror="alert(1)">');
+  await expect(prose.locator('img')).toHaveCount(0);
+  await expect(chat.locator('.assistant-answer').last()).toHaveAttribute(
+    'lang',
+    'en',
+  );
+  await expect(chat.locator('.assistant-answer').nth(1)).toHaveAttribute(
+    'lang',
+    'ar',
+  );
+  expect(requests[2]!.locale).toBe('en');
+  await chat.getByRole('button', { name: 'محادثة جديدة', exact: true }).click();
+  await expect(chat.locator('.assistant-mode')).toContainText('محادثة ذكية');
+  await expect(chat.locator('.assistant-turn')).toHaveCount(0);
+  await chat.locator('.assistant-privacy summary').click();
+  await expect(chat).toContainText('اسمك الأول وأسئلتك ومقتطفات من الردود');
+  await composer.fill('نبدأ من جديد');
+  await composer.press('Enter');
+  await expect(chat.locator('.assistant-prose')).toContainText(
+    'تمام، نبدأ من جديد.',
+  );
+  expect(requests[3]).toMatchObject({
+    history: [],
+    conversation: [],
+    locale: 'ar',
+  });
+  await chat
+    .getByRole('button', { name: 'إغلاق المساعد', exact: true })
+    .click();
+  await page.reload();
+  await page
+    .getByRole('button', { name: 'افتح مساعد Lancelio', exact: true })
+    .click();
+  await expect(chat.locator('.assistant-turn')).toHaveCount(0);
+});
+
 test('assistant recognizes Gemini replies, refreshes capabilities and restores the composer after the conversation limit', async ({
   page,
 }) => {
@@ -11338,17 +11460,13 @@ test('assistant recognizes Gemini replies, refreshes capabilities and restores t
       chat.getByRole('link', { name: 'فتح فاتورة جديدة', exact: true }),
     ).toHaveCount(count);
   }
-  await expect(chat.locator('.assistant-mode-text')).toHaveText(
-    'فهم ذكي للأسئلة',
-  );
+  await expect(chat.locator('.assistant-mode-text')).toHaveText('محادثة ذكية');
   await expect(composer).toBeDisabled();
   await expect(chat).toContainText('ابدأ محادثة جديدة علشان تكمل أسئلتك.');
   await chat.getByRole('button', { name: 'محادثة جديدة', exact: true }).click();
   await expect(composer).toBeEnabled();
   await expect(composer).toBeFocused();
-  await expect(chat.locator('.assistant-mode-text')).toHaveText(
-    'فهم ذكي للأسئلة',
-  );
+  await expect(chat.locator('.assistant-mode-text')).toHaveText('محادثة ذكية');
   expect(modeReads).toBe(2);
   degraded = true;
   await composer.fill('إزاي أعمل فاتورة؟');
@@ -11356,9 +11474,213 @@ test('assistant recognizes Gemini replies, refreshes capabilities and restores t
   await expect(chat.locator('.assistant-guided-note')).toContainText(
     'الفهم الذكي غير متاح حاليًا',
   );
-  await expect(chat.locator('.assistant-mode-text')).toHaveText(
-    'فهم ذكي للأسئلة',
+  await expect(chat.locator('.assistant-mode-text')).toHaveText('محادثة ذكية');
+});
+
+test('assistant scroll responsive audit opens at the welcome and keeps the reader in control', async ({
+  page,
+  context,
+}) => {
+  test.setTimeout(120000);
+  await register(page);
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  const longReply = Array.from(
+    { length: 28 },
+    (_, index) =>
+      `Step ${index + 1}: Review the project scope, choose one clear priority, and leave time to check the result.`,
+  ).join('\n\n');
+  let releaseReply: (() => void) | undefined;
+  await page.route('**/api/v1/assistant', async (route) => {
+    if (route.request().method() === 'GET')
+      return route.fulfill({
+        json: { success: true, data: { mode: 'gemini' } },
+      });
+    if (route.request().postDataJSON().message === 'Continue the detailed plan')
+      await new Promise<void>((resolve) => {
+        releaseReply = resolve;
+      });
+    return route.fulfill({
+      json: {
+        success: true,
+        data: {
+          message: longReply,
+          plan: {
+            intent: 'chat',
+            topic: 'navigation',
+            status: 'open',
+            query: '',
+          },
+          engine: 'gemini',
+          degraded: false,
+          asOf: null,
+          records: [],
+          hasMore: false,
+          facts: null,
+        },
+      },
+    });
+  });
+  const chat = page.locator('.assistant-dialog');
+  const transcript = chat.locator('.assistant-transcript');
+  const composer = chat.locator('#assistant-question');
+  const open = () => page.locator('.assistant-launcher').click();
+  const close = () =>
+    chat
+      .getByRole('button', { name: /^(?:إغلاق المساعد|Close assistant)$/u })
+      .click();
+  for (const locale of ['ar', 'en'] as const) {
+    await context.addCookies([
+      { name: 'lancelio_language', value: locale, url: testOrigin },
+    ]);
+    await page.reload();
+    for (const [width, height] of [
+      [1440, 900],
+      [1280, 720],
+      [390, 844],
+      [320, 568],
+    ] as const) {
+      await page.setViewportSize({ width, height });
+      await open();
+      await expect(chat.locator('.assistant-mode-text')).toContainText(
+        locale === 'ar' ? 'محادثة ذكية' : 'Intelligent conversation',
+      );
+      await expect(composer).toBeFocused();
+      await expect
+        .poll(() => transcript.evaluate((element) => element.scrollTop))
+        .toBe(0);
+      if (height >= 720)
+        expect(
+          await transcript.evaluate(
+            (element) => element.scrollHeight - element.clientHeight,
+          ),
+        ).toBeLessThanOrEqual(1);
+      await expect(chat.locator('.assistant-privacy')).not.toHaveAttribute(
+        'open',
+        '',
+      );
+      const observation = await inspectResponsiveLayout(
+        page,
+        `assistant-welcome-${locale}-${width}`,
+        width <= 760,
+        width,
+      );
+      expect(
+        observation.issues,
+        observation.issues.length
+          ? JSON.stringify(
+              await page.evaluate(() => ({
+                inner: innerWidth,
+                root: document.documentElement.clientWidth,
+                scroll: document.documentElement.scrollWidth,
+                dialog: document
+                  .querySelector('.assistant-dialog')
+                  ?.getBoundingClientRect()
+                  .toJSON(),
+                header: document
+                  .querySelector('.assistant-header')
+                  ?.getBoundingClientRect()
+                  .toJSON(),
+              })),
+            )
+          : undefined,
+      ).toEqual([]);
+      if (width === 390)
+        await chat.screenshot({
+          path: resolve(
+            import.meta.dirname,
+            `../../../.cache/ui/assistant/welcome-compact-${locale}.png`,
+          ),
+          animations: 'disabled',
+        });
+      const privacy = chat.locator('.assistant-privacy summary');
+      await privacy.focus();
+      await privacy.press('Enter');
+      await expect(chat.locator('.assistant-privacy')).toHaveAttribute(
+        'open',
+        '',
+      );
+      await transcript.evaluate((element) => {
+        element.scrollTop = element.scrollHeight;
+      });
+      await close();
+      await open();
+      await expect
+        .poll(() => transcript.evaluate((element) => element.scrollTop))
+        .toBe(0);
+      await expect(chat.locator('.assistant-privacy')).not.toHaveAttribute(
+        'open',
+        '',
+      );
+      await close();
+    }
+  }
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await open();
+  await composer.fill('Explain a detailed plan');
+  await composer.press('Enter');
+  await expect(chat.locator('.assistant-prose')).toContainText('Step 28:');
+  await expect(chat.locator('.assistant-prose p').first()).toBeInViewport();
+  await expect
+    .poll(() => transcript.evaluate((element) => element.scrollTop))
+    .toBe(0);
+  await transcript.evaluate((element) => {
+    element.scrollTop = element.scrollHeight;
+  });
+  await expect
+    .poll(() =>
+      transcript.evaluate(
+        (element) =>
+          element.scrollHeight - element.clientHeight - element.scrollTop,
+      ),
+    )
+    .toBeLessThanOrEqual(1);
+  await composer.fill('Continue the detailed plan');
+  await composer.press('Enter');
+  await expect(chat.locator('.assistant-pending')).toBeVisible();
+  await transcript.evaluate((element) => {
+    element.scrollTop = 180;
+  });
+  await expect(
+    chat.getByRole('button', { name: 'Latest messages', exact: true }),
+  ).toBeVisible();
+  const readingPosition = await transcript.evaluate(
+    (element) => element.scrollTop,
   );
+  expect(releaseReply).toBeDefined();
+  releaseReply?.();
+  await expect(chat.locator('.assistant-prose')).toHaveCount(2);
+  await expect
+    .poll(() =>
+      transcript.evaluate((element) => Math.abs(element.scrollTop - 180)),
+    )
+    .toBeLessThanOrEqual(1);
+  await close();
+  await open();
+  await expect
+    .poll(() => transcript.evaluate((element) => element.scrollTop))
+    .toBe(readingPosition);
+  await chat
+    .getByRole('button', { name: 'Latest messages', exact: true })
+    .click();
+  await expect(transcript).toBeFocused();
+  await expect
+    .poll(() =>
+      transcript.evaluate(
+        (element) =>
+          element.scrollHeight - element.clientHeight - element.scrollTop,
+      ),
+    )
+    .toBeLessThanOrEqual(1);
+  await expect(
+    chat.getByRole('button', { name: 'Latest messages', exact: true }),
+  ).toHaveCount(0);
+  await chat
+    .getByRole('button', { name: 'New conversation', exact: true })
+    .click();
+  await expect(chat.locator('.assistant-welcome')).toBeVisible();
+  await expect
+    .poll(() => transcript.evaluate((element) => element.scrollTop))
+    .toBe(0);
 });
 
 test('assistant responsive audit fits both languages and themes on desktop and short mobile screens', async ({

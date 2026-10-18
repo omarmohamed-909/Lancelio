@@ -124,6 +124,12 @@ export class GuidedInterpreter implements AssistantInterpreter {
       /ملخص|نظرة|ارقام|شغلي|شغلى|overview|summary|dashboard|my work/u.test(text)
     )
       return { ...plan, intent: 'overview' };
+    if (
+      /^(?:اهلا|اهلين|هلا|هاي|ازيك|ازيكم|عامل ايه|اخبارك ايه|السلام عليكم|صباح الخير|مساء الخير|شكرا?|تسلم|متشكر|hi|hello|hey|thanks|thank you|how are you)[؟?!.\s]*$/u.test(
+        text,
+      )
+    )
+      return { ...plan, intent: 'chat' };
     return plan;
   }
 }

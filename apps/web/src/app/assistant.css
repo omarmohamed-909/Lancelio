@@ -43,6 +43,7 @@
 }
 .assistant-dialog[open] {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   grid-template-rows: auto auto minmax(0, 1fr) auto;
   animation: assistant-enter 180ms ease-out;
 }
@@ -121,56 +122,83 @@
   flex: 1;
   min-width: 0;
 }
+.assistant-thread {
+  position: relative;
+  display: grid;
+  min-height: 0;
+  min-width: 0;
+}
 .assistant-transcript {
   min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: 24px 20px;
-  scrollbar-gutter: stable;
+  padding: 20px;
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--muted) 40%, transparent) transparent;
+  overflow-anchor: none;
 }
 .assistant-welcome {
-  padding-block: 10px;
+  padding-block: 2px;
+}
+.assistant-welcome-heading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 .assistant-welcome-icon {
   display: grid;
   place-items: center;
-  width: 64px;
-  height: 64px;
-  border-radius: 21px;
+  width: 42px;
+  height: 42px;
+  flex-shrink: 0;
+  border-radius: 14px;
   border: 1px solid var(--line);
   background: var(--surface-soft);
   color: var(--green);
-  margin-bottom: 24px;
 }
 .assistant-welcome h3 {
-  margin: 10px 0;
-  font-size: 28px;
+  margin: 0;
+  font-size: 24px;
   line-height: 1.5;
+  overflow-wrap: anywhere;
 }
 .assistant-welcome > p {
+  margin: 12px 0 0;
   font-size: 14px;
   color: var(--muted);
-  line-height: 1.9;
+  line-height: 1.7;
 }
 .assistant-suggestions {
   display: grid;
-  gap: 10px;
-  margin-block: 24px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-block: 18px 8px;
 }
 .assistant-suggestions button {
   display: flex;
-  gap: 12px;
+  gap: 8px;
   align-items: center;
   text-align: start;
   border: 1px solid var(--line);
   border-radius: 13px;
-  padding: 12px 14px;
-  min-height: 48px;
+  padding: 9px 10px;
+  min-height: 44px;
+  min-width: 0;
   font: inherit;
-  font-size: 14px;
+  font-size: 13px;
+  line-height: 1.5;
   color: var(--ink);
   background: var(--surface);
   cursor: pointer;
+  transition:
+    border-color 160ms,
+    background 160ms;
+}
+.assistant-suggestions button:first-child {
+  grid-column: 1 / -1;
+}
+.assistant-suggestions button span {
+  overflow-wrap: anywhere;
 }
 .assistant-suggestions button svg {
   flex-shrink: 0;
@@ -178,9 +206,58 @@
 }
 .assistant-suggestions button:hover {
   border-color: var(--focus);
+  background: var(--surface-soft);
+}
+.assistant-privacy {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.7;
+}
+.assistant-privacy summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  cursor: pointer;
+  list-style: none;
+}
+.assistant-privacy summary::-webkit-details-marker {
+  display: none;
+}
+.assistant-privacy summary:focus-visible,
+.assistant-transcript:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: -2px;
+}
+.assistant-privacy[open] summary svg {
+  transform: rotate(180deg);
 }
 .assistant-welcome .assistant-welcome-footnote {
   font-size: 12px;
+  margin: 0 0 10px;
+}
+.assistant-jump {
+  position: absolute;
+  inset-inline: 12px;
+  inset-block-end: 12px;
+  margin-inline: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  width: max-content;
+  max-width: calc(100% - 24px);
+  min-height: 44px;
+  padding: 8px 14px;
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  background: var(--surface);
+  color: var(--green);
+  box-shadow: 0 4px 18px #102b2020;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
 }
 .assistant-turn + .assistant-turn {
   margin-block-start: 24px;
@@ -465,7 +542,7 @@ body:has(.workspace-sidebar[aria-modal='true']) .assistant-launcher {
     padding: 8px 14px;
   }
   .assistant-transcript {
-    padding: 20px 14px;
+    padding: 16px 14px;
   }
   .assistant-composer {
     padding-inline: 14px;
@@ -502,6 +579,9 @@ body:has(.workspace-sidebar[aria-modal='true']) .assistant-launcher {
     animation: none;
   }
   .assistant-launcher {
+    transition: none;
+  }
+  .assistant-suggestions button {
     transition: none;
   }
   .assistant-launcher:hover {

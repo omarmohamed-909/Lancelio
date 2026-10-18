@@ -89,9 +89,21 @@ export const assistantHelp: Record<
   },
 };
 export const assistantSuggestions = [
-  { label: 'إيه هو Lancelio؟', icon: 'product' },
-  { label: 'ملخص شغلي', icon: 'overview' },
-  { label: 'إيه المشاريع المفتوحة؟', icon: 'projects' },
-  { label: 'مين العملاء اللي عليهم مستحقات؟', icon: 'money' },
-  { label: 'إزاي أعمل فاتورة؟', icon: 'help' },
+  {
+    label: 'إيه هو Lancelio؟',
+    shortLabel: 'إيه هو Lancelio؟',
+    icon: 'product',
+  },
+  { label: 'ملخص شغلي', shortLabel: 'ملخص شغلي', icon: 'overview' },
+  {
+    label: 'إيه المشاريع المفتوحة؟',
+    shortLabel: 'المشاريع المفتوحة',
+    icon: 'projects',
+  },
+  {
+    label: 'مين العملاء اللي عليهم مستحقات؟',
+    shortLabel: 'مستحقات',
+    icon: 'money',
+  },
+  { label: 'إزاي أعمل فاتورة؟', shortLabel: 'أعمل فاتورة', icon: 'help' },
 ] as const;

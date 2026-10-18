@@ -1,4 +1,18 @@
 export const assistantEn = {
+  'عن المحادثة والخصوصية': 'Conversation & privacy',
+  'آخر الرسائل': 'Latest messages',
+  'المشاريع المفتوحة': 'Open projects',
+  'أعمل فاتورة': 'Create an invoice',
+  مستحقات: 'Outstanding payments',
+  'محادثة ذكية': 'Intelligent conversation',
+  'أهلًا يا {0} 👋': 'Hi, {0} 👋',
+  'أهلًا بيك 👋': 'Welcome 👋',
+  'اتكلم براحتك، فكّر معايا، أو اسألني عن Lancelio وشغلك.':
+    'Talk naturally, brainstorm with me, or ask about Lancelio and your work.',
+  'المحادثة مؤقتة وبتتمسح مع تحديث الصفحة أو تسجيل الخروج. بيانات الشغل من مساحتك الحالية.':
+    'This conversation clears on reload or sign-out. Work data comes from your current workspace.',
+  'للمحادثة الذكية بنبعت اسمك الأول وأسئلتك ومقتطفات من الردود لمزوّد الذكاء الاصطناعي. سجلات الشغل لا تُرسل.':
+    'Intelligent conversation sends your first name, questions and reply excerpts to the AI provider. Work records are not sent.',
   'إيه هو Lancelio؟': 'What is Lancelio?',
   'عن Lancelio': 'About Lancelio',
   'Lancelio مساحة عمل للفريلانسر بتجمع إدارة العملاء وعروض الأسعار والمشاريع والمهام والفواتير والدفعات في مكان واحد.':

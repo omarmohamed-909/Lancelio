@@ -55,17 +55,31 @@ export function AssistantAnswer({
           )}
         </p>
       )}
+      {reply.message && (
+        <div
+          className="assistant-prose"
+          style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}
+        >
+          {reply.message.split(/\n{2,}/u).map((paragraph, index) => (
+            <p key={index}>{paragraph}</p>
+          ))}
+        </div>
+      )}
       {plan.intent === 'help' && (
         <>
-          <p className="assistant-answer-title">{t(help.title)}</p>
-          {plan.topic === 'product' ? (
-            help.steps.map((step) => <p key={step}>{t(step)}</p>)
-          ) : (
-            <ol>
-              {help.steps.map((step) => (
-                <li key={step}>{t(step)}</li>
-              ))}
-            </ol>
+          {!reply.message && (
+            <>
+              <p className="assistant-answer-title">{t(help.title)}</p>
+              {plan.topic === 'product' ? (
+                help.steps.map((step) => <p key={step}>{t(step)}</p>)
+              ) : (
+                <ol>
+                  {help.steps.map((step) => (
+                    <li key={step}>{t(step)}</li>
+                  ))}
+                </ol>
+              )}
+            </>
           )}
           <Link className="assistant-source" href={help.href} onClick={close}>
             {t(help.action)}
@@ -73,13 +87,14 @@ export function AssistantAnswer({
           </Link>
         </>
       )}
-      {plan.intent === 'clarify' && (
-        <p>
-          {t(
-            'أقدر أشرح استخدام الموقع وأعرض ملخص شغلك والمشاريع والمستحقات. جرّب سؤال من الاقتراحات، أو اكتب «ابحث عن» وبعدها اسم أو رقم فاتورة.',
-          )}
-        </p>
-      )}
+      {(plan.intent === 'clarify' || plan.intent === 'chat') &&
+        !reply.message && (
+          <p>
+            {t(
+              'أقدر أشرح استخدام الموقع وأعرض ملخص شغلك والمشاريع والمستحقات. جرّب سؤال من الاقتراحات، أو اكتب «ابحث عن» وبعدها اسم أو رقم فاتورة.',
+            )}
+          </p>
+        )}
       {plan.intent === 'overview' && facts && (
         <>
           <p className="assistant-answer-title">

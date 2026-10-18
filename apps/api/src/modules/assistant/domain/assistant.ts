@@ -1,4 +1,5 @@
 export const intents = [
+  'chat',
   'help',
   'overview',
   'projects',
@@ -47,6 +48,7 @@ export interface AssistantFacts {
   finances: { currency: string; outstandingMinor: string }[];
 }
 export interface AssistantResult {
+  message: string | null;
   plan: AssistantPlan;
   engine: 'guided' | 'openai' | 'gemini';
   degraded: boolean;
@@ -58,6 +60,26 @@ export interface AssistantResult {
 export interface AssistantInput {
   message: string;
   history: string[];
+  conversation?: { question: string; answer: string }[];
+  locale?: 'ar' | 'en' | undefined;
+}
+
+export interface AssistantConversationInput {
+  question: string;
+  previousQuestions: string[];
+  conversation: { question: string; answer: string }[];
+  firstName: string;
+  locale: 'ar' | 'en';
+  plan: AssistantPlan;
+}
+
+export function isAssistantMessage(value: unknown): value is string {
+  return (
+    typeof value === 'string' &&
+    value.trim().length > 0 &&
+    value.length <= 4000 &&
+    !/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/u.test(value)
+  );
 }
 
 export function isAssistantPlan(value: unknown): value is AssistantPlan {

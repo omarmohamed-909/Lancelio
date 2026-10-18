@@ -22,7 +22,7 @@ Only `NEXT_PUBLIC_API_URL` belongs in browser-visible configuration. Provider ke
 
 ### Assistant
 
-Guided product help and scoped queries work with `ASSISTANT_PROVIDER=guided`, without an external API key. Optional Gemini/OpenAI providers interpret questions into a fixed read plan; they do not receive workspace records or generate displayed business facts.
+Guided product help, basic personalized greetings and scoped queries work with `ASSISTANT_PROVIDER=guided`, without an external API key. Gemini/OpenAI add natural conversation, advice, text drafting and contextual product explanations. Classification receives the question, up to six previous questions and limited generated-reply excerpts; conversation generation also receives the authenticated first name and reply locale. Database records and balances are never sent. Real business facts still come from scoped read cards. Each conversational turn uses classification plus generation; a data turn needs classification only. No transcript is persisted by the application; provider requests use `store: false`.
 
 ```sh
 npm run assistant:check

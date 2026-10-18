@@ -10,11 +10,23 @@ type Handler = RequestHandler<
   unknown,
   unknown,
   Record<string, string>,
-  { identity: { user: { id: string }; workspace: { id: string } } }
+  {
+    identity: { user: { id: string; name: string }; workspace: { id: string } };
+  }
 >;
 const body = z.strictObject({
   message: z.string().trim().min(1).max(1000),
   history: z.array(z.string().trim().min(1).max(1000)).max(6).default([]),
+  conversation: z
+    .array(
+      z.strictObject({
+        question: z.string().trim().min(1).max(1000),
+        answer: z.string().trim().min(1).max(2000),
+      }),
+    )
+    .max(6)
+    .default([]),
+  locale: z.enum(['ar', 'en']).optional(),
 });
 export function createAssistantRouter(
   service: AskAssistant,
@@ -75,6 +87,7 @@ export function createAssistantRouter(
         response.locals.identity.workspace.id,
         parsed.data,
         controller.signal,
+        { displayName: response.locals.identity.user.name },
       );
       if (!controller.signal.aborted) response.json({ success: true, data });
     } finally {
