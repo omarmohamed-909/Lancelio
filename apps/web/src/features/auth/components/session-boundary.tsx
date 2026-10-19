@@ -6,6 +6,7 @@ import { WorkspaceAssistant } from '../../assistant/components/workspace-assista
 export function SessionBoundary({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   if (
+    pathname === '/' ||
     pathname.startsWith('/share/') ||
     pathname === '/forgot-password' ||
     pathname === '/reset-password'

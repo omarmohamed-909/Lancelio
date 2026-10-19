@@ -1,6 +1,8 @@
 import { assistantAr } from './assistant';
+import { landingAr } from './landing';
 export const ar = {
   ...assistantAr,
+  ...landingAr,
   'تم تحديث حالة المشروع إلى «{0}».': 'تم تحديث حالة المشروع إلى «{0}».',
   'دفتر العملاء | Lancelio': 'دفتر العملاء | Lancelio',
   'بوابة العميل | Lancelio': 'بوابة العميل | Lancelio',
