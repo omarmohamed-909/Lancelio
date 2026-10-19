@@ -29,6 +29,9 @@ test('landing is public without an API dependency and links into the real authen
   await expect(page).toHaveTitle('Lancelio | شغلك كله، في مكانه');
   await expect(page.getByRole('main')).toBeVisible();
   await expect(
+    page.locator('.landing-assistant-copy .landing-eyebrow svg'),
+  ).toHaveCount(0);
+  await expect(
     page.locator('.landing-hero').getByRole('link', { name: 'ابدأ مساحتك' }),
   ).toHaveAttribute('href', '/register');
   await expect(
@@ -155,6 +158,21 @@ for (const locale of ['ar', 'en'] as const) {
           exact: true,
         })
         .click();
+      const stamp = (await page
+        .locator('.landing-approval-stamp')
+        .boundingBox())!;
+      const signature = (await page
+        .locator('.landing-proposal-signature em')
+        .boundingBox())!;
+      const paper = (await page
+        .locator('.landing-proposal-paper')
+        .boundingBox())!;
+      expect(
+        stamp.x + stamp.width + 6 <= signature.x ||
+          signature.x + signature.width + 6 <= stamp.x,
+      ).toBe(true);
+      expect(stamp.x).toBeGreaterThanOrEqual(paper.x);
+      expect(stamp.x + stamp.width).toBeLessThanOrEqual(paper.x + paper.width);
       if (width === 390 || width === 1440) {
         await mkdir('.cache/ui', { recursive: true });
         await page.screenshot({
@@ -205,4 +223,98 @@ test('responsive audit: landing dark appearance stays accessible and respects re
     fullPage: true,
     animations: 'disabled',
   });
+});
+
+for (const locale of ['ar', 'en'] as const) {
+  test(`responsive audit: landing opening fits laptop and desktop heights in ${locale}`, async ({
+    page,
+  }, testInfo) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await setLanguage(page, locale);
+    for (const [width, height] of [
+      [1024, 600],
+      [1280, 720],
+      [1366, 768],
+      [1536, 738],
+      [1440, 900],
+      [1920, 920],
+    ] as const) {
+      await page.setViewportSize({ width, height });
+      await page.goto('/');
+      await page.evaluate(() => document.fonts.ready);
+      for (const selector of [
+        '.landing-hero-copy',
+        '.landing-preview-controls',
+        '.landing-preview',
+        '.landing-payment-note',
+        '.landing-preview-caption',
+        '.landing-flow-strip',
+      ]) {
+        const bounds = await page.locator(selector).boundingBox();
+        expect(bounds, `${selector} at ${width}x${height}`).not.toBeNull();
+        expect(
+          bounds!.y,
+          `${selector} top at ${width}x${height}`,
+        ).toBeGreaterThanOrEqual(0);
+        expect(
+          bounds!.y + bounds!.height,
+          `${selector} bottom at ${width}x${height}`,
+        ).toBeLessThanOrEqual(height + 1);
+      }
+      expect(
+        await page.evaluate(
+          () => document.documentElement.scrollWidth <= innerWidth + 1,
+        ),
+      ).toBe(true);
+      if (width === 1536 || width === 1024) {
+        await mkdir('.cache/ui', { recursive: true });
+        await page.screenshot({
+          path: `.cache/ui/landing-fit-${locale}-${width}-${testInfo.project.name}.png`,
+          animations: 'disabled',
+        });
+      }
+    }
+  });
+}
+
+test('landing preview plays, pauses, resumes and stops for manual exploration and reduced motion', async ({
+  page,
+}) => {
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('/');
+  const preview = page.locator('.landing-visual');
+  const selected = page.getByRole('tab', { selected: true });
+  await expect(preview).toHaveAttribute('data-playing', 'true');
+  await expect(selected).toContainText('المشاريع', { timeout: 9500 });
+  await page.getByRole('button', { name: 'إيقاف العرض التلقائي' }).click();
+  await page.locator('h1').click();
+  await expect(preview).toHaveAttribute('data-playing', 'false');
+  await page.waitForTimeout(6800);
+  await expect(selected).toContainText('المشاريع');
+  await page.getByRole('button', { name: 'تشغيل العرض التلقائي' }).click();
+  await page.locator('h1').click();
+  await expect(preview).toHaveAttribute('data-playing', 'true');
+  await expect(selected).toContainText('الفواتير', { timeout: 9500 });
+  await page.getByRole('tab', { name: 'نظرة عامة', exact: true }).click();
+  await page.locator('h1').click();
+  await expect(preview).toHaveAttribute('data-playing', 'false');
+  await expect(selected).toContainText('نظرة عامة');
+  await expect(
+    page.getByRole('button', { name: 'تشغيل العرض التلقائي' }),
+  ).toBeEnabled();
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await expect(
+    page.getByRole('button', { name: 'تشغيل العرض التلقائي' }),
+  ).toBeDisabled();
+  await expect
+    .poll(() =>
+      preview.evaluate(
+        (element) =>
+          element
+            .getAnimations({ subtree: true })
+            .filter((animation) => animation.playState === 'running').length,
+      ),
+    )
+    .toBe(0);
 });

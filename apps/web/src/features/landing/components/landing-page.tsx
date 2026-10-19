@@ -15,9 +15,10 @@ import {
   LayoutDashboard,
   Menu,
   MessageCircle,
+  Pause,
+  Play,
   Plus,
   ReceiptText,
-  Sparkles,
   Users,
   X,
 } from 'lucide-react';
@@ -87,7 +88,93 @@ function WorkspacePreview() {
   const { t, intlLocale, locale } = useI18n();
   const ready = useHydrated();
   const [active, setActive] = useState(0);
+  const [motionAllowed, setMotionAllowed] = useState(false);
+  const [paused, setPaused] = useState(false);
+  const [hovered, setHovered] = useState(false);
+  const [focused, setFocused] = useState(false);
+  const [visible, setVisible] = useState(false);
+  const visual = useRef<HTMLDivElement>(null);
   const tabs = useRef<(HTMLButtonElement | null)[]>([]);
+  const playing = motionAllowed && !paused && !hovered && !focused && visible;
+  useEffect(() => {
+    const media = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const update = () => setMotionAllowed(!media.matches);
+    update();
+    media.addEventListener('change', update);
+    const surface = visual.current;
+    const observer = new IntersectionObserver(
+      ([entry]) =>
+        setVisible(
+          Boolean(entry?.isIntersecting && entry.intersectionRatio >= 0.45) &&
+            !document.hidden,
+        ),
+      { threshold: 0.45 },
+    );
+    if (surface) observer.observe(surface);
+    const visibility = () => {
+      if (document.hidden) setVisible(false);
+      else if (surface) {
+        observer.unobserve(surface);
+        observer.observe(surface);
+      }
+    };
+    document.addEventListener('visibilitychange', visibility);
+    return () => {
+      media.removeEventListener('change', update);
+      document.removeEventListener('visibilitychange', visibility);
+      observer.disconnect();
+    };
+  }, []);
+  useEffect(() => {
+    if (!playing) return;
+    const timer = window.setTimeout(
+      () => setActive((current) => (current + 1) % previewTabs.length),
+      6500,
+    );
+    return () => window.clearTimeout(timer);
+  }, [active, playing]);
+  useEffect(() => {
+    const surface = visual.current;
+    if (!surface || !motionAllowed) return;
+    const pointer = window.matchMedia('(hover: hover) and (pointer: fine)');
+    let frame = 0;
+    const reset = () => {
+      window.cancelAnimationFrame(frame);
+      surface.style.removeProperty('--preview-tilt-x');
+      surface.style.removeProperty('--preview-tilt-y');
+      surface.style.removeProperty('--orbit-shift-x');
+      surface.style.removeProperty('--orbit-shift-y');
+    };
+    const move = (event: PointerEvent) => {
+      if (!pointer.matches || event.pointerType !== 'mouse') return;
+      const bounds = surface.getBoundingClientRect();
+      const x = (event.clientX - bounds.left) / bounds.width - 0.5;
+      const y = (event.clientY - bounds.top) / bounds.height - 0.5;
+      window.cancelAnimationFrame(frame);
+      frame = window.requestAnimationFrame(() => {
+        const overPreview = (event.target as Element).closest(
+          '.landing-preview',
+        );
+        surface.style.setProperty(
+          '--preview-tilt-x',
+          `${overPreview ? -y * 3 : 0}deg`,
+        );
+        surface.style.setProperty(
+          '--preview-tilt-y',
+          `${overPreview ? x * 3 : 0}deg`,
+        );
+        surface.style.setProperty('--orbit-shift-x', `${x * 12}px`);
+        surface.style.setProperty('--orbit-shift-y', `${y * 12}px`);
+      });
+    };
+    surface.addEventListener('pointermove', move);
+    surface.addEventListener('pointerleave', reset);
+    return () => {
+      surface.removeEventListener('pointermove', move);
+      surface.removeEventListener('pointerleave', reset);
+      reset();
+    };
+  }, [motionAllowed]);
   const number = (value: number) =>
     new Intl.NumberFormat(intlLocale).format(value);
   const money = (value: number) =>
@@ -106,41 +193,77 @@ function WorkspacePreview() {
       next = (index + direction + previewTabs.length) % previewTabs.length;
     } else return;
     event.preventDefault();
+    setPaused(true);
     setActive(next);
     tabs.current[next]?.focus();
   }
   return (
-    <div className="landing-visual" id="workspace-preview">
+    <div
+      className="landing-visual"
+      id="workspace-preview"
+      ref={visual}
+      data-playing={playing}
+      onPointerEnter={(event) => {
+        if (event.pointerType === 'mouse') setHovered(true);
+      }}
+      onPointerLeave={() => setHovered(false)}
+      onFocusCapture={() => setFocused(true)}
+      onBlurCapture={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget))
+          setFocused(false);
+      }}
+    >
       <div className="landing-orbit" aria-hidden="true">
         <span />
         <span />
         <span />
       </div>
-      <div
-        className="landing-preview-tabs"
-        role="tablist"
-        aria-label={t('نظرة أقرب على Lancelio')}
-      >
-        {previewTabs.map(({ label, icon: Icon }, index) => (
-          <button
-            key={label}
-            type="button"
-            role="tab"
-            disabled={!ready}
-            id={`preview-tab-${index}`}
-            aria-selected={active === index}
-            aria-controls={`preview-panel-${index}`}
-            tabIndex={active === index ? 0 : -1}
-            ref={(element) => {
-              tabs.current[index] = element;
-            }}
-            onClick={() => setActive(index)}
-            onKeyDown={(event) => changeTab(event, index)}
-          >
-            <Icon size={15} aria-hidden="true" />
-            {t(label)}
-          </button>
-        ))}
+      <div className="landing-preview-controls">
+        <div
+          className="landing-preview-tabs"
+          role="tablist"
+          aria-label={t('نظرة أقرب على Lancelio')}
+        >
+          {previewTabs.map(({ label, icon: Icon }, index) => (
+            <button
+              key={label}
+              type="button"
+              role="tab"
+              disabled={!ready}
+              id={`preview-tab-${index}`}
+              aria-selected={active === index}
+              aria-controls={`preview-panel-${index}`}
+              tabIndex={active === index ? 0 : -1}
+              ref={(element) => {
+                tabs.current[index] = element;
+              }}
+              onClick={() => {
+                setPaused(true);
+                setActive(index);
+              }}
+              onKeyDown={(event) => changeTab(event, index)}
+            >
+              <Icon size={15} aria-hidden="true" />
+              {t(label)}
+            </button>
+          ))}
+        </div>
+        <button
+          className="landing-preview-playback"
+          type="button"
+          disabled={!ready || !motionAllowed}
+          aria-label={t(
+            paused ? 'تشغيل العرض التلقائي' : 'إيقاف العرض التلقائي',
+          )}
+          title={t(paused ? 'تشغيل العرض التلقائي' : 'إيقاف العرض التلقائي')}
+          onClick={() => setPaused(!paused)}
+        >
+          {paused ? (
+            <Play size={15} aria-hidden="true" />
+          ) : (
+            <Pause size={15} aria-hidden="true" />
+          )}
+        </button>
       </div>
       <div className="landing-preview">
         <div className="landing-preview-sidebar" aria-hidden="true">
@@ -614,15 +737,17 @@ export function LandingPage() {
                       </span>
                     ))}
                   </div>
-                  <div className="landing-proposal-signature">
-                    <span>{t('استوديو نواة')}</span>
-                    <em dir="ltr">Nawa.</em>
+                  <div className="landing-proposal-footer">
+                    <div className="landing-proposal-signature">
+                      <span>{t('استوديو نواة')}</span>
+                      <em dir="ltr">Nawa.</em>
+                    </div>
+                    <span className="landing-approval-stamp">
+                      <CircleCheck size={17} />
+                      {t('مقبول')}
+                    </span>
                   </div>
                 </div>
-                <span className="landing-approval-stamp">
-                  <CircleCheck size={17} />
-                  {t('مقبول')}
-                </span>
                 <span className="landing-proposal-caption">
                   {t('اتفاق واضح، بداية أحسن.')}
                 </span>
@@ -762,7 +887,6 @@ export function LandingPage() {
           <div className="landing-assistant">
             <div className="landing-assistant-copy">
               <span className="landing-eyebrow">
-                <Sparkles size={16} aria-hidden="true" />
                 {t('مساعدك، جوّه الصورة.')}
               </span>
               <h2 id="landing-assistant-title">
