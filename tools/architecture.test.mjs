@@ -25,8 +25,7 @@ function location(file) {
 
 function violation(from, to) {
   const source = location(from);
-  if (from === 'app.ts' || from.replaceAll('\\', '/').startsWith('main/'))
-    return undefined;
+  if (from.replaceAll('\\', '/').startsWith('main/')) return undefined;
   if (!to.startsWith('.')) {
     return ['domain', 'application'].includes(source.layer)
       ? 'Inner layers cannot import packages, Node APIs, or aliases'
@@ -38,11 +37,7 @@ function violation(from, to) {
   const target = location(targetFile);
   if (targetFile.startsWith('../'))
     return 'Dependencies cannot leave the API source tree';
-  if (
-    targetFile === 'app.ts' ||
-    targetFile === 'app.js' ||
-    targetFile.startsWith('main/')
-  )
+  if (targetFile.startsWith('main/'))
     return 'Only the composition root can depend on main';
   if (source.module && target.module && source.module !== target.module)
     return 'Modules cannot import another module directly; define an explicit port';
@@ -72,11 +67,6 @@ async function sourceFiles(directory) {
 }
 
 test('boundary rules reject infrastructure leaks and cross-module coupling', () => {
-  assert.equal(
-    violation('app.ts', './main/create-vercel-runtime.js'),
-    undefined,
-  );
-  assert.ok(violation('shared/bootstrap.ts', '../app.js'));
   assert.ok(violation('modules/auth/domain/user.ts', 'mongoose'));
   assert.ok(
     violation(
