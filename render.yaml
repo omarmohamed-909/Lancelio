@@ -4,7 +4,7 @@ services:
   - type: web
     name: lancelio-api
     runtime: node
-    buildCommand: npm ci && npm run build --workspace @lancelio/api
+    buildCommand: npm ci --include=dev && npm run build --workspace @lancelio/api
     startCommand: npm run start --workspace @lancelio/api
     healthCheckPath: /api/v1/health/ready
     autoDeployTrigger: off

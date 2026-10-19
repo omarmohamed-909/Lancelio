@@ -1,0 +1,14 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "buildCommand": "mkdir -p .vercel/empty",
+  "outputDirectory": ".vercel/empty",
+  "daemons": {
+    "recovery": {
+      "root": ".",
+      "entrypoint": "Dockerfile",
+      "instances": { "iad1": 1 },
+      "terminationGracePeriodSeconds": 30
+    }
+  }
+}

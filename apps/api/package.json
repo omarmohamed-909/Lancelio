@@ -3,11 +3,15 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
+  "engines": {
+    "node": "22.x"
+  },
   "scripts": {
     "assistant:check": "tsx --env-file-if-exists=.env src/main/check-assistant.ts",
     "dev": "tsx watch --env-file-if-exists=.env src/main/server.ts",
     "build": "tsc -p tsconfig.build.json",
     "start": "node --env-file-if-exists=.env dist/main/server.js",
+    "start:recovery-worker": "node --env-file-if-exists=.env dist/main/recovery-worker.js",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },
@@ -22,7 +26,11 @@
     "zod": "4.6.5"
   },
   "devDependencies": {
+    "@types/cors": "2.8.19",
+    "@types/express": "5.0.6",
+    "@types/node": "26.6.4",
     "mongodb-memory-server-core": "11.3.0",
-    "supertest": "7.3.1"
+    "supertest": "7.3.1",
+    "typescript": "6.0.3"
   }
 }

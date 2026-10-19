@@ -46,7 +46,9 @@ RESEND_API_KEY=your-server-side-key
 EMAIL_FROM=your-verified-sender-mailbox
 ```
 
-Restart the API after changes. `WEB_ORIGIN` determines the recovery-link destination and must be the canonical HTTPS frontend origin in production. Keep click tracking disabled for recovery messages. The API process runs the durable MongoDB-backed delivery queue; no additional worker command exists.
+Restart the API after changes. `WEB_ORIGIN` determines the recovery-link destination and must be the canonical HTTPS frontend origin in production. Keep click tracking disabled for recovery messages. The local/persistent API process runs the durable MongoDB-backed delivery queue. The Vercel Function only enqueues jobs: deploy the separate recovery worker before enabling delivery there, then set `RECOVERY_WORKER_MODE=external` on the API project. See [Vercel deployment](RELEASE.md#recovery-worker-on-vercel).
+
+After building, `npm run start:recovery-worker --workspace @lancelio/api` runs delivery independently without an HTTP listener. It requires the same database, JWT secret, verified Resend sender and production web origin as the API. The worker drains its current delivery on shutdown; interrupted jobs retain their existing Mongo lease/retry behavior.
 
 Queued recipients/tokens are encrypted with a purpose-derived key from `JWT_ACCESS_SECRET`. Rotating that secret prevents delivery of previously queued encrypted payloads. See the [recovery contract](API.md) and [release activation gates](RELEASE.md#hosted-activation-gates). Automated tests use a fake mailer and do not prove inbox delivery.
 
@@ -102,7 +104,7 @@ Actual `db:backup` / `db:restore` operations require separate explicit credentia
 
 - Login, refresh and logout require an `Origin` header matching `WEB_ORIGIN`, including CLI requests.
 - Access tokens stay in browser memory. Refresh tokens travel in an HttpOnly cookie, never JSON.
-- Production pages and `/api/v1` share the canonical HTTPS browser-facing origin. Next rewrites can forward to a separate persistent API.
+- Production pages and `/api/v1` share the canonical HTTPS browser-facing origin. Next rewrites forward to the Vercel Express API; persistent Node hosting is also supported.
 - Web Locks and BroadcastChannel coordinate refresh rotation across tabs. Reusing a consumed refresh token revokes the session.
 - Verify HTTPS cookies, trusted proxy handling, rate limits and real delivery on the actual host. Local success is not hosted activation.
 

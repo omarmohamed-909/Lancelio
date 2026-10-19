@@ -1,35 +1,51 @@
 # REL-001 — release preparation
 
-Status: local release preparation is verified; REL-001 is ready for hosted activation, with all activation gates below still open. The selected topology is **Vercel for Next.js and a separate persistent Node.js API service**. `render.yaml` provides a Render example; importing it or selecting a compute plan can create a billable service and has not been done.
+The selected topology is **two Vercel projects: Next.js frontend and Express API**, with an optional separate Vercel Daemon project for recovery email. Hosted runtime, email and operational activation checks remain separate from a successful build. `render.yaml` remains an alternative for persistent Node hosting.
 
 ## Deployment configuration
 
-| Component | Setting                     | Value                                                             |
-| --------- | --------------------------- | ----------------------------------------------------------------- |
-| Vercel    | Framework / Root Directory  | Next.js / `apps/web`                                              |
-| Vercel    | Node.js                     | 22.x, at least 22.20                                              |
-| Vercel    | Install command             | `npm ci --include=dev --prefix ../..`                             |
-| Vercel    | Build command               | `npm run build`                                                   |
-| Vercel    | `NEXT_PUBLIC_API_URL`       | `/api/v1`                                                         |
-| Vercel    | `API_UPSTREAM_ORIGIN`       | Canonical HTTPS origin of the API, without path or trailing slash |
-| API       | Build, from repository root | `npm ci` then `npm run build --workspace @lancelio/api`           |
-| API       | Start, from repository root | `npm run start --workspace @lancelio/api`                         |
-| API       | `NODE_ENV`                  | `production`                                                      |
-| API       | `PORT`                      | Provider-supplied port; do not hardcode port 5000 on the provider |
-| API       | `WEB_ORIGIN`                | Exact canonical HTTPS frontend origin, without trailing slash     |
-| API       | `MONGODB_URI`               | Dedicated production Atlas database with transaction support      |
-| API       | `JWT_ACCESS_SECRET`         | Strong production secret, independent of local/test credentials   |
-| API       | Health check                | `/api/v1/health/ready`                                            |
+| Component | Setting                    | Value                                                           |
+| --------- | -------------------------- | --------------------------------------------------------------- |
+| Frontend  | Framework / Root Directory | Next.js / `apps/web`                                            |
+| API       | Framework / Root Directory | Express / `apps/api`                                            |
+| Both      | Node.js                    | 22.x, at least 22.20                                            |
+| Both      | Install command            | `npm ci --include=dev --prefix ../..`                           |
+| Both      | Build command              | `npm run build`                                                 |
+| Both      | Output directory           | Framework default; remove custom overrides such as `dist`       |
+| Frontend  | `NEXT_PUBLIC_API_URL`      | `/api/v1`                                                       |
+| Frontend  | `API_UPSTREAM_ORIGIN`      | Canonical HTTPS API origin, without path or trailing slash      |
+| API       | `NODE_ENV`                 | `production`                                                    |
+| API       | `WEB_ORIGIN`               | Exact canonical HTTPS frontend origin, without trailing slash   |
+| API       | `MONGODB_URI`              | Dedicated production Atlas database with transaction support    |
+| API       | `JWT_ACCESS_SECRET`        | Strong production secret, independent of local/test credentials |
+| API       | `EMAIL_PROVIDER`           | `disabled` until the worker and verified sender are configured  |
+| API       | Health check               | `/api/v1/health/ready`                                          |
 
-`apps/web/vercel.json` pins the frontend install/build commands for the `apps/web` Root Directory. Keep access to files outside that directory enabled so npm can read the root workspace manifest, lockfile and shared TypeScript configuration. The install explicitly includes development dependencies even in a production build: TypeScript and Node/React declarations are build tools, and the web workspace declares them directly. If a deployment reports missing `typescript` or `@types/node`, verify that it uses this configuration and deploy the latest commit with the previous Build Cache disabled. [Vercel configuration reference](https://vercel.com/docs/project-configuration/vercel-json).
+`apps/web/vercel.json` and `apps/api/vercel.json` pin each project's framework and install/build commands. Keep access to files outside each Root Directory enabled so npm can read the root workspace manifest, lockfile and shared TypeScript configuration. Installation explicitly includes development dependencies even when `NODE_ENV=production` or npm omits dev dependencies by default. Each workspace declares its own TypeScript build dependencies; API declarations include Node, Express and CORS. If a deployment reports missing `tsc`, `typescript` or `@types/node`, deploy the latest commit with these settings and the previous Build Cache disabled. [Vercel configuration reference](https://vercel.com/docs/project-configuration/vercel-json).
+
+Both workspace manifests pin `engines.node` to `22.x`; use Node 22 in the dashboard too. This prevents the Node 24/npm 11 default from conflicting with the repository's Node 22/npm 10 toolchain. [Node.js version selection](https://vercel.com/docs/functions/runtimes/node-js/node-js-versions), [package managers](https://vercel.com/docs/package-managers).
+
+The API exports Express from `apps/api/src/app.ts`, a recognized native Vercel entry point. Each Function instance lazily initializes and shares one runtime/database connection across requests; failed initialization returns an uncached generic 503 and can retry on the next request. It does not bind a port or start a delivery timer. Local `npm run dev:api` and the compiled `start` command retain their persistent server and delivery loop. [Express on Vercel](https://vercel.com/docs/frameworks/backend/express).
 
 Keep the monorepo root/package-lock accessible to the Vercel project. Set the two frontend variables **before building**; Next embeds the public prefix and compiles the rewrite destination into its build. Changing the backend address requires a new frontend build. Keep preview deployments on a separate API/database with their own exact origin; preview URLs must never point at production data.
 
 The browser calls `/api/v1` on its own origin. Next rewrites the request to the separate service, retaining request body, Origin and cookie headers. The secure `__Host-lancelio_refresh` cookie consequently belongs to the frontend host. It remains HttpOnly, host-only, Path=/ and SameSite=Strict. Do not switch the browser URL to an unrelated backend domain or relax the cookie/Origin policy to work around a deployment problem. Production links generated by Resend use `WEB_ORIGIN`.
 
-The API must run continuously to process the durable password-recovery queue. Choose an always-on service and review its price before activation; a sleeping instance or serverless request handler does not continuously process pending jobs. Mongo credentials need the application database's collection, index and transaction permissions. Configure Atlas network access for the provider's actual outbound addresses; use independent least-privilege backup/restore credentials.
+Mongo credentials need the application database's collection, index and transaction permissions. Configure Atlas network access for Vercel's actual outbound connectivity; use independent least-privilege backup/restore credentials. Missing variables, blocked Atlas access or unsupported transactions can fail the first runtime request even after a successful build. Verify `/api/v1/health/ready` on the deployed API before connecting the frontend.
 
 `/api/v1/health` is liveness. `/api/v1/health/ready` checks the live Mongo connection with a bounded ping and returns 503 on failure, without connection details. Both are uncached. The frontend sends no-referrer, nosniff, frame denial and restricted camera/microphone/geolocation headers. No claim is made that these headers alone constitute a security audit.
+
+### Recovery worker on Vercel
+
+Keep `EMAIL_PROVIDER=disabled` for the initial API deployment if recovery email is not configured yet. Other API features remain available. Request handlers must not run the persistent delivery loop; the queue needs a separate live worker. Enabling Resend on the Vercel API requires the explicit `RECOVERY_WORKER_MODE=external` flag, otherwise runtime initialization fails closed rather than silently accepting undeliverable jobs.
+
+For delivery on Vercel, copy the contents of `docs/vercel-worker.example.json` into repository-root `vercel.json` when activating the worker. Prepare a separate Vercel project from that commit with **Root Directory set to the repository root**. Do not change the frontend/API Root Directories; they retain their own `vercel.json` files. The worker needs repository-root Docker context because its build uses the shared lockfile and TypeScript configuration; daemon roots cannot escape a project's Root Directory.
+
+The example config defines one `recovery` Daemon in `iad1` using the root `Dockerfile`, a 30-second termination grace period and an empty static output. The Docker build compiles the API on Node 22 and starts only `dist/main/recovery-worker.js`, as an unprivileged user; it never copies `.env` files. No daemon is created simply by deploying `apps/api` or `apps/web`.
+
+Set worker variables `NODE_ENV=production`, `MONGODB_URI`, `JWT_ACCESS_SECRET`, `WEB_ORIGIN`, `EMAIL_PROVIDER=resend`, `RESEND_API_KEY` and `EMAIL_FROM`. The database and JWT secret must match the API so queued payloads can be decrypted. Leave `ASSISTANT_PROVIDER=guided` on the worker; it does not need an AI provider key. Deploy the worker to Production and verify it is running, then configure the API's Resend variables plus `RECOVERY_WORKER_MODE=external` and redeploy it. Verify actual inbox delivery before exposing password recovery.
+
+Vercel Daemons are currently a public beta available across plans, with plan-specific resource limits; they run only in Production. Review available capacity/usage and the configured region before activation. This repository provides worker configuration; provisioning, usage allowance and real delivery still need hosted verification. [Daemons](https://vercel.com/docs/daemons), [configuration reference](https://vercel.com/docs/daemons/config-reference), [limits](https://vercel.com/docs/daemons/limits).
 
 ## Local checks
 
@@ -51,7 +67,7 @@ The release journey creates account, client, proposal, anonymous acceptance/proj
 
 Native WebKit on Windows exposes SameSite=None in cookie inspection even for explicit attributes; [Playwright's own tests account for this platform limitation](https://github.com/microsoft/playwright/blob/main/tests/library/browsercontext-cookies.spec.ts). The release test verifies the actual `Set-Cookie` Strict/Secure/HttpOnly/host-only attributes on every engine and additionally checks the cookie-store SameSite value on other platforms. It does not change the application's Strict policy or claim native Windows WebKit proves Safari's SameSite enforcement. Linux CI and real Safari remain separate checks.
 
-The separate `test:api-startup` smoke boots the actual compiled API entry point in production with an explicitly isolated environment/database and an ephemeral port. It verifies registration/login, secure cookie attributes, live-session revocation, foreign-Origin rejection and 503 readiness after Mongo stops while liveness remains 200. Build the API first. Its test never loads application `.env` files or inherits production secrets.
+The separate `test:api-startup` smoke boots the actual compiled persistent API entry point in production with an explicitly isolated environment/database and an ephemeral port. It verifies registration/login, secure cookie attributes, live-session revocation, foreign-Origin rejection and 503 readiness after Mongo stops while liveness remains 200. Build the API first. `serverless.integration.test.ts` exercises the shared production runtime through the Vercel request adapter against an isolated replica set; lifecycle tests cover concurrent cold starts, retry after initialization failure, required external delivery configuration and worker shutdown. These tests never load application `.env` files or inherit production secrets.
 
 ## Encrypted backup and restore runbook
 
@@ -80,10 +96,10 @@ Temporary plaintext dump/config files are confined to a uniquely created OS temp
 
 ## Hosted activation gates
 
-- Provision the selected API service, canonical frontend domain, isolated production database and server secrets. No deployment/account/resource has been created by this work.
+- Configure the two Vercel projects, canonical frontend domain, isolated production database and server secrets. Build success is separate from runtime readiness and full hosted activation.
 - Verify the **actual** Vercel-to-provider forwarding chain and request limits. Express currently keeps `trust proxy` disabled, so limits key by the socket peer and can aggregate users behind an upstream proxy; in-memory IP counters also remain per instance. Do not enable `trust proxy=true` or trust client-supplied forwarding headers. Configure a verified trusted proxy path and shared/edge limits before admitting real users; prove spoofed headers cannot bypass limits. Mongo mailbox limits already coordinate across instances.
 - Run readiness and full journey on the hosted canonical HTTPS origin, including secure cookies across Vercel rewrites, refresh/logout, foreign Origin rejection, grant revoke/renew and maintenance rollback. Local TLS success does not prove the provider's routing/headers/network policy.
-- Configure `EMAIL_PROVIDER=resend`, server key and verified `EMAIL_FROM`. With an explicitly designated test mailbox, check inbox/spam delivery, disabled click tracking, HTTPS link consumption, expiry and session revocation. Local fake-mailer tests do not prove real delivery.
+- Deploy the recovery worker before configuring `EMAIL_PROVIDER=resend`, `RECOVERY_WORKER_MODE=external`, server key and verified `EMAIL_FROM` on the Vercel API. With an explicitly designated test mailbox, check inbox/spam delivery, disabled click tracking, HTTPS link consumption, expiry and session revocation. Local fake-mailer tests do not prove real delivery.
 - Verify a restore drill using a designated staging database and an offsite copy, record timestamps, size/key identifier and recovery duration. Define backup ownership/retention and enable the chosen scheduled service separately.
 - Check real iOS Safari/Android Chrome devices and keyboard/screen-reader operation. Browser-engine emulation and viewport audits are useful evidence, not proof of every physical device.
 
@@ -93,7 +109,14 @@ Keep the last passing frontend deployment and API artifact/reference. Stop traff
 
 ## Evidence
 
-Local reports live in ignored `.cache` and are not production records. CI configuration includes quality, runtime audit, compiled API startup, backup drill, the regular browser suite and production HTTPS smoke; no remote CI run or hosted deployment has been claimed. Quality stages were run separately locally, with browser/build/type-generation commands serialized to avoid sharing `.next` concurrently.
+Local reports live in ignored `.cache` and are not production records. CI configuration includes quality, runtime audit, compiled API startup, backup drill, the regular browser suite and production HTTPS smoke. Consult the current GitHub/Vercel status for hosted results; the historical counts below are local evidence. Quality stages were run separately locally, with browser/build/type-generation commands serialized to avoid sharing `.next` concurrently.
+
+Verified locally for the Vercel API adaptation on 2026-10-20:
+
+- A clean isolated installation with `NODE_ENV=production` and npm's dev omission enabled still installed the API's TypeScript/Node/Express/CORS build dependencies using `--include=dev`; the API production build passed. No package versions were upgraded.
+- All 8 new lifecycle/worker/runtime tests passed. The full 901-case API run passed 899 cases and hit two 5-second timeouts while the clean installation was running. Both affected files then passed all 112 cases with the unchanged timeout after installation finished.
+- The compiled persistent API startup smoke passed, including secure sessions and readiness after Mongo loss. The compiled Vercel entry also imported without starting a listener or database connection.
+- API/release-tool types, lint, formatting, architecture checks and configuration validation against Vercel's current schema passed. A local Docker runtime was unavailable, so the optional worker image and actual Daemon deployment remain hosted checks.
 
 Verified locally on 2026-10-10:
 

@@ -165,7 +165,7 @@ Browser and release checks require additional local tools. Follow the [verificat
 
 Core workflows are implemented and the repository includes CI and release tooling. **Hosted activation is still pending**: real email delivery, production routing and rate limits, scheduled offsite backups and physical-device checks must be verified before public launch.
 
-The planned topology is **Vercel frontend + a persistent Node API**. [`render.yaml`](render.yaml) is an example configuration, not an active deployment. Use the [release runbook](docs/RELEASE.md) for configuration, activation gates, backups and rollback.
+The deployment topology is **Vercel frontend + Vercel Express API**. An optional Vercel Daemon processes recovery email when delivery is enabled. Use the [release runbook](docs/RELEASE.md) for project settings, environment variables, worker activation, backups and rollback. [`render.yaml`](render.yaml) remains an alternative persistent API configuration.
 
 ## Explore the docs
 
