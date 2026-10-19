@@ -374,6 +374,61 @@ test('register, real identity, logout, unauthorized redirect, and login', async 
   await expect(page).toHaveURL('/dashboard');
 });
 
+test('landing recognizes the real session across navigation, reload, login and logout in another tab', async ({
+  page,
+  context,
+}) => {
+  await page.goto('/');
+  await expect(
+    page
+      .locator('.landing-header')
+      .getByRole('link', { name: 'تسجيل الدخول', exact: true }),
+  ).toBeVisible();
+  const accountPage = await context.newPage();
+  await register(accountPage);
+  const workspaceLink = () =>
+    page
+      .locator('.landing-header')
+      .getByRole('link', { name: 'افتح مساحة العمل', exact: true });
+  await expect(workspaceLink()).toHaveAttribute('href', '/dashboard');
+  await expect(
+    page.locator('.landing a[href="/login"], .landing a[href="/register"]'),
+  ).toHaveCount(0);
+  await page.reload();
+  await expect(workspaceLink()).toBeVisible();
+  await expect(page.locator('.workspace-assistant')).toHaveCount(0);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.getByRole('button', { name: 'افتح القائمة' }).click();
+  await expect(
+    page
+      .locator('#landing-mobile-navigation')
+      .getByRole('link', { name: 'افتح مساحة العمل', exact: true }),
+  ).toHaveAttribute('href', '/dashboard');
+  await expect(
+    page.locator('#landing-mobile-navigation a[href="/login"]'),
+  ).toHaveCount(0);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await workspaceLink().click();
+  await expect(page).toHaveURL('/dashboard');
+  await expect(page.getByRole('heading', { level: 1 })).toContainText(
+    account.name,
+  );
+  await page.goto('/');
+  await expect(workspaceLink()).toBeVisible();
+  await accountPage
+    .getByRole('button', { name: 'تسجيل الخروج', exact: true })
+    .click();
+  await expect(
+    page
+      .locator('.landing-header')
+      .getByRole('link', { name: 'تسجيل الدخول', exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.locator('.landing-hero').getByRole('link', { name: 'ابدأ مساحتك' }),
+  ).toHaveAttribute('href', '/register');
+  await expect(page).toHaveURL('/');
+});
+
 test('validation, password visibility, duplicate registration, and single submit', async ({
   page,
 }) => {

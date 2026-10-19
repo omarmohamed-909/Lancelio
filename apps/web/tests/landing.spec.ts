@@ -28,6 +28,7 @@ test('landing is public without an API dependency and links into the real authen
   );
   await expect(page).toHaveTitle('Lancelio | شغلك كله، في مكانه');
   await expect(page.getByRole('main')).toBeVisible();
+  await expect(page.locator('.landing-preview-playback')).toHaveCount(0);
   await expect(
     page.locator('.landing-assistant-copy .landing-eyebrow svg'),
   ).toHaveCount(0);
@@ -94,6 +95,41 @@ test('landing chooses English from device preferences and keeps an explicit lang
   }
 });
 
+test('landing rejects an expired session hint and restores visitor actions', async ({
+  page,
+  context,
+}) => {
+  await context.addCookies([
+    {
+      name: 'lancelio_refresh',
+      value: 'expired-session-test',
+      url: 'http://localhost:3100',
+      httpOnly: true,
+    },
+  ]);
+  await page.route('**/auth/refresh', (route) =>
+    route.fulfill({
+      status: 401,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        success: false,
+        error: { code: 'UNAUTHENTICATED' },
+      }),
+    }),
+  );
+  await page.goto('/');
+  await expect(
+    page
+      .locator('.landing-header')
+      .getByRole('link', { name: 'تسجيل الدخول', exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.locator('.landing-hero').getByRole('link', { name: 'ابدأ مساحتك' }),
+  ).toHaveAttribute('href', '/register');
+  await expect(page.locator('.landing a[href="/dashboard"]')).toHaveCount(0);
+  await expect(page).toHaveURL('/');
+});
+
 test('landing mobile navigation supports anchors and Escape without blocking the page', async ({
   page,
 }) => {
@@ -147,6 +183,9 @@ for (const locale of ['ar', 'en'] as const) {
           exact: true,
         })
         .click();
+      const preview = (await page.locator('.landing-preview').boundingBox())!;
+      const note = (await page.locator('.landing-payment-note').boundingBox())!;
+      expect(note.y).toBeGreaterThan(preview.y + preview.height + 2);
       expect(
         await page.evaluate(
           () => document.documentElement.scrollWidth <= window.innerWidth + 1,
@@ -287,12 +326,12 @@ test('landing preview plays, pauses, resumes and stops for manual exploration an
   const selected = page.getByRole('tab', { selected: true });
   await expect(preview).toHaveAttribute('data-playing', 'true');
   await expect(selected).toContainText('المشاريع', { timeout: 9500 });
-  await page.getByRole('button', { name: 'إيقاف العرض التلقائي' }).click();
+  await page.getByRole('button', { name: 'إيقاف الحركة' }).click();
   await page.locator('h1').click();
   await expect(preview).toHaveAttribute('data-playing', 'false');
   await page.waitForTimeout(6800);
   await expect(selected).toContainText('المشاريع');
-  await page.getByRole('button', { name: 'تشغيل العرض التلقائي' }).click();
+  await page.getByRole('button', { name: 'متابعة الحركة' }).click();
   await page.locator('h1').click();
   await expect(preview).toHaveAttribute('data-playing', 'true');
   await expect(selected).toContainText('الفواتير', { timeout: 9500 });
@@ -301,11 +340,11 @@ test('landing preview plays, pauses, resumes and stops for manual exploration an
   await expect(preview).toHaveAttribute('data-playing', 'false');
   await expect(selected).toContainText('نظرة عامة');
   await expect(
-    page.getByRole('button', { name: 'تشغيل العرض التلقائي' }),
+    page.getByRole('button', { name: 'متابعة الحركة' }),
   ).toBeEnabled();
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await expect(
-    page.getByRole('button', { name: 'تشغيل العرض التلقائي' }),
+    page.getByRole('button', { name: 'متابعة الحركة' }),
   ).toBeDisabled();
   await expect
     .poll(() =>

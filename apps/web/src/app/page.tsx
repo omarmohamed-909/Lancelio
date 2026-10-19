@@ -1,7 +1,8 @@
 import type { Metadata } from 'next';
+import { cookies } from 'next/headers';
 import { requestLanguage } from '../i18n/request-locale';
 import { translate } from '../i18n/translate';
-import { LandingPage } from '../features/landing/components/landing-page';
+import { LandingEntry } from '../features/landing/components/landing-entry';
 import './landing.css';
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -24,6 +25,15 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-export default function HomePage() {
-  return <LandingPage />;
+export default async function HomePage() {
+  const cookieStore = await cookies();
+  const hasSessionCookie =
+    cookieStore.has('__Host-lancelio_refresh') ||
+    cookieStore.has('lancelio_refresh');
+  return (
+    <LandingEntry
+      key={hasSessionCookie ? 'returning' : 'visitor'}
+      hasSessionCookie={hasSessionCookie}
+    />
+  );
 }

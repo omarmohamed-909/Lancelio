@@ -1,6 +1,7 @@
 export const landingEn = {
-  'إيقاف العرض التلقائي': 'Pause preview',
-  'تشغيل العرض التلقائي': 'Play preview',
+  'افتح مساحة العمل': 'Open your workspace',
+  'إيقاف الحركة': 'Pause motion',
+  'متابعة الحركة': 'Resume motion',
   اليوم: 'Today',
   غدًا: 'Tomorrow',
   'ابدأ الآن': 'Get started',

@@ -15,8 +15,6 @@ import {
   LayoutDashboard,
   Menu,
   MessageCircle,
-  Pause,
-  Play,
   Plus,
   ReceiptText,
   Users,
@@ -153,7 +151,7 @@ function WorkspacePreview() {
       window.cancelAnimationFrame(frame);
       frame = window.requestAnimationFrame(() => {
         const overPreview = (event.target as Element).closest(
-          '.landing-preview',
+          '.landing-preview-main',
         );
         surface.style.setProperty(
           '--preview-tilt-x',
@@ -218,54 +216,46 @@ function WorkspacePreview() {
         <span />
         <span />
       </div>
-      <div className="landing-preview-controls">
-        <div
-          className="landing-preview-tabs"
-          role="tablist"
-          aria-label={t('نظرة أقرب على Lancelio')}
-        >
-          {previewTabs.map(({ label, icon: Icon }, index) => (
-            <button
-              key={label}
-              type="button"
-              role="tab"
-              disabled={!ready}
-              id={`preview-tab-${index}`}
-              aria-selected={active === index}
-              aria-controls={`preview-panel-${index}`}
-              tabIndex={active === index ? 0 : -1}
-              ref={(element) => {
-                tabs.current[index] = element;
-              }}
-              onClick={() => {
-                setPaused(true);
-                setActive(index);
-              }}
-              onKeyDown={(event) => changeTab(event, index)}
-            >
-              <Icon size={15} aria-hidden="true" />
-              {t(label)}
-            </button>
-          ))}
-        </div>
-        <button
-          className="landing-preview-playback"
-          type="button"
-          disabled={!ready || !motionAllowed}
-          aria-label={t(
-            paused ? 'تشغيل العرض التلقائي' : 'إيقاف العرض التلقائي',
-          )}
-          title={t(paused ? 'تشغيل العرض التلقائي' : 'إيقاف العرض التلقائي')}
-          onClick={() => setPaused(!paused)}
-        >
-          {paused ? (
-            <Play size={15} aria-hidden="true" />
-          ) : (
-            <Pause size={15} aria-hidden="true" />
-          )}
-        </button>
-      </div>
       <div className="landing-preview">
+        <div className="landing-preview-chrome">
+          <span className="landing-preview-window-dots" aria-hidden="true">
+            <i />
+            <i />
+            <i />
+          </span>
+          <div className="landing-preview-controls">
+            <div
+              className="landing-preview-tabs"
+              role="tablist"
+              aria-label={t('نظرة أقرب على Lancelio')}
+            >
+              {previewTabs.map(({ label, icon: Icon }, index) => (
+                <button
+                  key={label}
+                  type="button"
+                  role="tab"
+                  disabled={!ready}
+                  id={`preview-tab-${index}`}
+                  aria-selected={active === index}
+                  aria-controls={`preview-panel-${index}`}
+                  tabIndex={active === index ? 0 : -1}
+                  ref={(element) => {
+                    tabs.current[index] = element;
+                  }}
+                  onClick={() => {
+                    setPaused(true);
+                    setActive(index);
+                  }}
+                  onKeyDown={(event) => changeTab(event, index)}
+                >
+                  <Icon size={15} aria-hidden="true" />
+                  {t(label)}
+                </button>
+              ))}
+            </div>
+          </div>
+          <span className="landing-preview-sample">{t('بيانات توضيحية')}</span>
+        </div>
         <div className="landing-preview-sidebar" aria-hidden="true">
           <div className="landing-mini-brand">
             <BrandMark light />
@@ -301,12 +291,6 @@ function WorkspacePreview() {
           </span>
         </div>
         <div className="landing-preview-main">
-          <div className="landing-preview-top">
-            <span>{t(previewTabs[active]!.label)}</span>
-            <span className="landing-preview-sample">
-              {t('بيانات توضيحية')}
-            </span>
-          </div>
           <div className="landing-preview-panels">
             {previewTabs.map((tab, panel) => (
               <div
@@ -450,29 +434,38 @@ function WorkspacePreview() {
           </div>
         </div>
       </div>
-      <div className="landing-payment-note" aria-hidden="true">
-        <span>
-          <CheckCheck size={20} />
-        </span>
-        <div>
-          <strong>{t('الفاتورة اتسددت.')}</strong>
-          <small>{t('تفصيلة أقل في بالك.')}</small>
+      <div className="landing-preview-footer">
+        <div className="landing-payment-note" aria-hidden="true">
+          <span>
+            <CheckCheck size={20} />
+          </span>
+          <div>
+            <strong>{t('الفاتورة اتسددت.')}</strong>
+            <small>{t('تفصيلة أقل في بالك.')}</small>
+          </div>
         </div>
-        <span className="landing-note-lines">
-          <i />
-          <i />
-        </span>
+        <div className="landing-preview-meta">
+          <p className="landing-preview-caption">
+            {t('معاينة تفاعلية ببيانات توضيحية')}
+          </p>
+          <button
+            className="landing-motion-control"
+            type="button"
+            disabled={!ready || !motionAllowed}
+            onClick={() => setPaused(!paused)}
+          >
+            {t(paused ? 'متابعة الحركة' : 'إيقاف الحركة')}
+          </button>
+        </div>
       </div>
-      <p className="landing-preview-caption">
-        <span />
-        {t('معاينة تفاعلية ببيانات توضيحية')}
-      </p>
     </div>
   );
 }
 
-export function LandingPage() {
+export function LandingPage({ returning = false }: { returning?: boolean }) {
   const { t } = useI18n();
+  const entryHref = returning ? '/dashboard' : '/register';
+  const entryLabel = t(returning ? 'افتح مساحة العمل' : 'ابدأ مساحتك');
   const ready = useHydrated();
   const root = useRef<HTMLDivElement>(null);
   const menuButton = useRef<HTMLButtonElement>(null);
@@ -557,14 +550,16 @@ export function LandingPage() {
             <span className="landing-desktop-theme">
               <ThemeToggle />
             </span>
-            <Link href="/login" className="landing-login">
-              {t('تسجيل الدخول')}
-            </Link>
+            {!returning && (
+              <Link href="/login" className="landing-login">
+                {t('تسجيل الدخول')}
+              </Link>
+            )}
             <Link
-              href="/register"
+              href={entryHref}
               className="landing-button landing-header-cta"
             >
-              {t('ابدأ الآن')}
+              {returning ? entryLabel : t('ابدأ الآن')}
               <DirectionArrow />
             </Link>
             <button
@@ -597,13 +592,15 @@ export function LandingPage() {
               <DirectionArrow />
             </a>
           ))}
-          <Link href="/login">
-            {t('تسجيل الدخول')}
-            <DirectionArrow />
-          </Link>
+          {!returning && (
+            <Link href="/login">
+              {t('تسجيل الدخول')}
+              <DirectionArrow />
+            </Link>
+          )}
           <div>
-            <Link href="/register" className="landing-button">
-              {t('ابدأ مساحتك')}
+            <Link href={entryHref} className="landing-button">
+              {entryLabel}
               <DirectionArrow />
             </Link>
             <ThemeToggle />
@@ -632,8 +629,8 @@ export function LandingPage() {
               )}
             </p>
             <div className="landing-hero-actions">
-              <Link href="/register" className="landing-button">
-                {t('ابدأ مساحتك')}
+              <Link href={entryHref} className="landing-button">
+                {entryLabel}
                 <DirectionArrow />
               </Link>
               <a href="#features" className="landing-text-link">
@@ -899,8 +896,8 @@ export function LandingPage() {
                   'اسأل عن مشاريعك وفواتيرك، استكشف إمكانيات Lancelio، أو رتّب فكرة للخطوة الجاية. المساعد قريب، وقت ما تحتاجه.',
                 )}
               </p>
-              <Link href="/register" className="landing-text-link">
-                {t('ابدأ مساحتك')}
+              <Link href={entryHref} className="landing-text-link">
+                {entryLabel}
                 <DirectionArrow />
               </Link>
             </div>
@@ -1010,16 +1007,18 @@ export function LandingPage() {
             </h2>
             <p>{t('خلّي التفاصيل في مكانها، وارجع للي بتحب تعمله.')}</p>
             <Link
-              href="/register"
+              href={entryHref}
               className="landing-button landing-button-light"
             >
-              {t('ابدأ مساحتك')}
+              {entryLabel}
               <DirectionArrow />
             </Link>
-            <span className="landing-finale-login">
-              {t('عندك حساب بالفعل؟')}{' '}
-              <Link href="/login">{t('تسجيل الدخول')}</Link>
-            </span>
+            {!returning && (
+              <span className="landing-finale-login">
+                {t('عندك حساب بالفعل؟')}{' '}
+                <Link href="/login">{t('تسجيل الدخول')}</Link>
+              </span>
+            )}
           </div>
           <span className="landing-finale-orbit" aria-hidden="true" />
         </section>
@@ -1035,7 +1034,9 @@ export function LandingPage() {
               {t(label)}
             </a>
           ))}
-          <Link href="/login">{t('تسجيل الدخول')}</Link>
+          <Link href={returning ? '/dashboard' : '/login'}>
+            {returning ? entryLabel : t('تسجيل الدخول')}
+          </Link>
         </nav>
         <span dir="ltr">© {new Date().getFullYear()} Lancelio.</span>
       </footer>
