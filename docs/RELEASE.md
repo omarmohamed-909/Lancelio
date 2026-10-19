@@ -33,6 +33,8 @@ The browser calls `/api/v1` on its own origin. Next rewrites the request to the 
 
 Mongo credentials need the application database's collection, index and transaction permissions. Configure Atlas network access for Vercel's actual outbound connectivity; use independent least-privilege backup/restore credentials. Missing variables, blocked Atlas access or unsupported transactions can fail the first runtime request even after a successful build. Verify `/api/v1/health/ready` on the deployed API before connecting the frontend.
 
+An uncached `SERVICE_UNAVAILABLE` response during initialization is intentionally generic. Check the API project's **Runtime Logs**, not its successful Build Logs. `INVALID_CONFIGURATION` includes only recognized variable names, never their values. `DATABASE_OR_RUNTIME_INITIALIZATION_FAILED` directs investigation to MongoDB connectivity, credentials, transaction support and collection/index setup without printing connection strings or provider errors. A URI pointing at `localhost`/`127.0.0.1` cannot reach your development computer from Vercel. Use a reachable hosted database; check the database actually used by the local application before deciding whether a migration is needed. Never paste credentials into logs or chat.
+
 `/api/v1/health` is liveness. `/api/v1/health/ready` checks the live Mongo connection with a bounded ping and returns 503 on failure, without connection details. Both are uncached. The frontend sends no-referrer, nosniff, frame denial and restricted camera/microphone/geolocation headers. No claim is made that these headers alone constitute a security audit.
 
 ### Recovery worker on Vercel

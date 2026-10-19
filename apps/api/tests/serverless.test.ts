@@ -4,8 +4,10 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createServerlessHandler } from '../src/main/serverless-handler.js';
 import { createVercelRuntime } from '../src/main/create-vercel-runtime.js';
 import { startRecoveryWorker } from '../src/main/recovery-worker-loop.js';
+import { EnvironmentConfigurationError } from '../src/main/config.js';
 
 describe('Vercel request lifecycle', () => {
+  afterEach(() => vi.restoreAllMocks());
   it('shares one cold initialization across concurrent requests and reuses it', async () => {
     let release!: () => void;
     const gate = new Promise<void>((resolve) => {
@@ -38,6 +40,7 @@ describe('Vercel request lifecycle', () => {
   it.each(['throw', 'reject'])(
     'retries after a private initialization failure (%s)',
     async (failure) => {
+      const log = vi.spyOn(console, 'error').mockImplementation(() => {});
       const inner = express().get('/ready', (_request, response) =>
         response.sendStatus(204),
       );
@@ -61,10 +64,40 @@ describe('Vercel request lifecycle', () => {
         error: { code: 'SERVICE_UNAVAILABLE' },
       });
       expect(failed.text).not.toContain('private-database');
+      expect(log).toHaveBeenCalledTimes(1);
+      expect(JSON.stringify(log.mock.calls)).not.toContain('private-database');
       expect((await request(app).get('/ready')).status).toBe(204);
       expect(attempts).toBe(2);
     },
   );
+
+  it('logs only recognized configuration field names and keeps the public response generic', async () => {
+    const log = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const error = new EnvironmentConfigurationError([
+      'MONGODB_URI',
+      'WEB_ORIGIN',
+      'private-credential-value',
+      'MONGODB_URI',
+    ]);
+    error.message = 'private-provider-response';
+    const app = express().use(
+      createServerlessHandler(async () => {
+        throw error;
+      }),
+    );
+    const failed = await request(app).get('/api/v1/health/ready');
+    expect(failed.status).toBe(503);
+    expect(failed.body).toEqual({
+      success: false,
+      error: { code: 'SERVICE_UNAVAILABLE' },
+    });
+    expect(log).toHaveBeenCalledWith('Lancelio API initialization failed.', {
+      code: 'INVALID_CONFIGURATION',
+      fields: ['MONGODB_URI', 'WEB_ORIGIN'],
+    });
+    expect(JSON.stringify(log.mock.calls)).not.toContain('private-');
+    expect(failed.text).not.toContain('MONGODB_URI');
+  });
 
   const configuration = {
     NODE_ENV: 'development',

@@ -1,4 +1,5 @@
 import type { RequestHandler } from 'express';
+import { EnvironmentConfigurationError } from './config.js';
 
 export function createServerlessHandler(
   load: () => Promise<{ app: RequestHandler }>,
@@ -10,6 +11,12 @@ export function createServerlessHandler(
         .then(load)
         .catch((error: unknown) => {
           runtime = null;
+          console.error(
+            'Lancelio API initialization failed.',
+            error instanceof EnvironmentConfigurationError
+              ? { code: 'INVALID_CONFIGURATION', fields: error.fields }
+              : { code: 'DATABASE_OR_RUNTIME_INITIALIZATION_FAILED' },
+          );
           throw error;
         });
     let ready: { app: RequestHandler };

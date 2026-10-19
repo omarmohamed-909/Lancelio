@@ -76,9 +76,17 @@ const environmentSchema = z
   });
 
 export class EnvironmentConfigurationError extends Error {
+  readonly fields: readonly string[];
+
   constructor(fields: readonly string[]) {
-    super(`Invalid environment configuration: ${fields.join(', ')}`);
+    const safeFields = [...new Set(fields)].filter(
+      (field) =>
+        Object.hasOwn(environmentSchema.shape, field) ||
+        field === 'RECOVERY_WORKER_MODE',
+    );
+    super(`Invalid environment configuration: ${safeFields.join(', ')}`);
     this.name = 'EnvironmentConfigurationError';
+    this.fields = safeFields;
   }
 }
 
