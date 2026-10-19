@@ -8,7 +8,7 @@ Status: local release preparation is verified; REL-001 is ready for hosted activ
 | --------- | --------------------------- | ----------------------------------------------------------------- |
 | Vercel    | Framework / Root Directory  | Next.js / `apps/web`                                              |
 | Vercel    | Node.js                     | 22.x, at least 22.20                                              |
-| Vercel    | Install command             | `npm ci --prefix ../..`                                           |
+| Vercel    | Install command             | `npm ci --include=dev --prefix ../..`                             |
 | Vercel    | Build command               | `npm run build`                                                   |
 | Vercel    | `NEXT_PUBLIC_API_URL`       | `/api/v1`                                                         |
 | Vercel    | `API_UPSTREAM_ORIGIN`       | Canonical HTTPS origin of the API, without path or trailing slash |
@@ -20,6 +20,8 @@ Status: local release preparation is verified; REL-001 is ready for hosted activ
 | API       | `MONGODB_URI`               | Dedicated production Atlas database with transaction support      |
 | API       | `JWT_ACCESS_SECRET`         | Strong production secret, independent of local/test credentials   |
 | API       | Health check                | `/api/v1/health/ready`                                            |
+
+`apps/web/vercel.json` pins the frontend install/build commands for the `apps/web` Root Directory. Keep access to files outside that directory enabled so npm can read the root workspace manifest, lockfile and shared TypeScript configuration. The install explicitly includes development dependencies even in a production build: TypeScript and Node/React declarations are build tools, and the web workspace declares them directly. If a deployment reports missing `typescript` or `@types/node`, verify that it uses this configuration and deploy the latest commit with the previous Build Cache disabled. [Vercel configuration reference](https://vercel.com/docs/project-configuration/vercel-json).
 
 Keep the monorepo root/package-lock accessible to the Vercel project. Set the two frontend variables **before building**; Next embeds the public prefix and compiles the rewrite destination into its build. Changing the backend address requires a new frontend build. Keep preview deployments on a separate API/database with their own exact origin; preview URLs must never point at production data.
 
