@@ -2615,10 +2615,6 @@ html[dir='ltr'] .landing h2 {
   .landing-flow-connector > i {
     animation: landing-flow-travel 12s var(--step-delay) linear infinite;
   }
-  .landing-flow-strip:hover *,
-  .landing-flow-strip:focus-within * {
-    animation-play-state: paused;
-  }
   .landing-proposal-paper {
     animation: landing-paper-sway 7s ease-in-out infinite;
   }

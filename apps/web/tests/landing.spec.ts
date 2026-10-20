@@ -375,6 +375,7 @@ test('responsive audit: landing journey visibly moves, links to features and sha
   const flow = page.locator('.landing-flow-strip');
   await expect(flow).toHaveAttribute('data-motion-active', 'true');
   await expect(flow.getByRole('listitem')).toHaveCount(4);
+  await flow.hover();
   const dot = flow.locator('.landing-flow-connector > i').first();
   const before = await dot.evaluate(
     (element) => getComputedStyle(element).transform,
