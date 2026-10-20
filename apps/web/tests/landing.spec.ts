@@ -328,11 +328,19 @@ test('landing preview plays, pauses, resumes and stops for manual exploration an
   await expect(selected).toContainText('المشاريع', { timeout: 9500 });
   await page.getByRole('button', { name: 'إيقاف الحركة' }).click();
   await page.locator('h1').click();
+  await expect(page.locator('.landing')).toHaveAttribute(
+    'data-motion-paused',
+    'true',
+  );
   await expect(preview).toHaveAttribute('data-playing', 'false');
   await page.waitForTimeout(6800);
   await expect(selected).toContainText('المشاريع');
   await page.getByRole('button', { name: 'متابعة الحركة' }).click();
   await page.locator('h1').click();
+  await expect(page.locator('.landing')).toHaveAttribute(
+    'data-motion-paused',
+    'false',
+  );
   await expect(preview).toHaveAttribute('data-playing', 'true');
   await expect(selected).toContainText('الفواتير', { timeout: 9500 });
   await page.getByRole('tab', { name: 'نظرة عامة', exact: true }).click();
@@ -356,4 +364,57 @@ test('landing preview plays, pauses, resumes and stops for manual exploration an
       ),
     )
     .toBe(0);
+});
+
+test('responsive audit: landing journey visibly moves, links to features and shares the page motion control', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await page.goto('/');
+  const flow = page.locator('.landing-flow-strip');
+  await expect(flow).toHaveAttribute('data-motion-active', 'true');
+  await expect(flow.getByRole('listitem')).toHaveCount(4);
+  const dot = flow.locator('.landing-flow-connector > i').first();
+  const before = await dot.evaluate(
+    (element) => getComputedStyle(element).transform,
+  );
+  await expect
+    .poll(
+      () => dot.evaluate((element) => getComputedStyle(element).transform),
+      { timeout: 4000 },
+    )
+    .not.toBe(before);
+  await mkdir('.cache/ui', { recursive: true });
+  await flow.screenshot({
+    path: '.cache/ui/landing-animated-flow-ar.png',
+  });
+  await flow.getByRole('link', { name: /فوّتِر باحتراف/ }).click();
+  await expect(page).toHaveURL('/#feature-invoices');
+  const invoice = page.locator('#feature-invoices');
+  await expect(invoice).toHaveAttribute('data-motion-active', 'true');
+  await expect(flow).toHaveAttribute('data-motion-active', 'false');
+  expect((await invoice.boundingBox())!.y).toBeGreaterThanOrEqual(
+    (await page.locator('.landing-header').boundingBox())!.height,
+  );
+  const running = () =>
+    invoice.evaluate(
+      (element) =>
+        element
+          .getAnimations({ subtree: true })
+          .filter((animation) => animation.playState === 'running').length,
+    );
+  await expect.poll(running).toBeGreaterThan(0);
+  await page.getByRole('button', { name: 'إيقاف الحركة' }).click();
+  await invoice.scrollIntoViewIfNeeded();
+  await expect(page.locator('.landing')).toHaveAttribute(
+    'data-motion-paused',
+    'true',
+  );
+  await expect.poll(running).toBe(0);
+  await page.getByRole('button', { name: 'متابعة الحركة' }).click();
+  await invoice.scrollIntoViewIfNeeded();
+  await expect.poll(running).toBeGreaterThan(0);
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await expect.poll(running).toBe(0);
 });

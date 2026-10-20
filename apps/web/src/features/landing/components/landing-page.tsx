@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
-import type { KeyboardEvent } from 'react';
+import type { CSSProperties, KeyboardEvent } from 'react';
 import {
   ArrowDown,
   ArrowUpLeft,
@@ -25,11 +25,18 @@ import { LanguageSelect } from '../../../components/language/language-select';
 import { ThemeToggle } from '../../../components/theme/theme-toggle';
 import { useI18n } from '../../../i18n/language-provider';
 import { useHydrated } from '../../../shared/hooks/use-hydrated';
+import { useLandingMotion } from './use-landing-motion';
 
 const previewTabs = [
   { label: 'نظرة عامة', icon: LayoutDashboard },
   { label: 'المشاريع', icon: FolderKanban },
   { label: 'الفواتير', icon: ReceiptText },
+] as const;
+const flowSteps = [
+  { label: 'اتفق بوضوح', icon: FileText, href: '#feature-proposals' },
+  { label: 'نفّذ بترتيب', icon: FolderKanban, href: '#feature-projects' },
+  { label: 'فوّتِر باحتراف', icon: ReceiptText, href: '#feature-invoices' },
+  { label: 'تابع مستحقاتك', icon: CircleCheck, href: '#feature-invoices' },
 ] as const;
 const journey = [
   {
@@ -82,7 +89,13 @@ function DirectionArrow() {
   return <Icon size={19} aria-hidden="true" />;
 }
 
-function WorkspacePreview() {
+function WorkspacePreview({
+  motionPaused,
+  onToggleMotion,
+}: {
+  motionPaused: boolean;
+  onToggleMotion: () => void;
+}) {
   const { t, intlLocale, locale } = useI18n();
   const ready = useHydrated();
   const [active, setActive] = useState(0);
@@ -93,7 +106,13 @@ function WorkspacePreview() {
   const [visible, setVisible] = useState(false);
   const visual = useRef<HTMLDivElement>(null);
   const tabs = useRef<(HTMLButtonElement | null)[]>([]);
-  const playing = motionAllowed && !paused && !hovered && !focused && visible;
+  const playing =
+    motionAllowed &&
+    !paused &&
+    !motionPaused &&
+    !hovered &&
+    !focused &&
+    visible;
   useEffect(() => {
     const media = window.matchMedia('(prefers-reduced-motion: reduce)');
     const update = () => setMotionAllowed(!media.matches);
@@ -133,7 +152,7 @@ function WorkspacePreview() {
   }, [active, playing]);
   useEffect(() => {
     const surface = visual.current;
-    if (!surface || !motionAllowed) return;
+    if (!surface || !motionAllowed || motionPaused) return;
     const pointer = window.matchMedia('(hover: hover) and (pointer: fine)');
     let frame = 0;
     const reset = () => {
@@ -172,7 +191,7 @@ function WorkspacePreview() {
       surface.removeEventListener('pointerleave', reset);
       reset();
     };
-  }, [motionAllowed]);
+  }, [motionAllowed, motionPaused]);
   const number = (value: number) =>
     new Intl.NumberFormat(intlLocale).format(value);
   const money = (value: number) =>
@@ -452,9 +471,12 @@ function WorkspacePreview() {
             className="landing-motion-control"
             type="button"
             disabled={!ready || !motionAllowed}
-            onClick={() => setPaused(!paused)}
+            onClick={() => {
+              if (!(paused && !motionPaused)) onToggleMotion();
+              setPaused(false);
+            }}
           >
-            {t(paused ? 'متابعة الحركة' : 'إيقاف الحركة')}
+            {t(paused || motionPaused ? 'متابعة الحركة' : 'إيقاف الحركة')}
           </button>
         </div>
       </div>
@@ -468,6 +490,8 @@ export function LandingPage({ returning = false }: { returning?: boolean }) {
   const entryLabel = t(returning ? 'افتح مساحة العمل' : 'ابدأ مساحتك');
   const ready = useHydrated();
   const root = useRef<HTMLDivElement>(null);
+  const [motionPaused, setMotionPaused] = useState(false);
+  useLandingMotion(root);
   const menuButton = useRef<HTMLButtonElement>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   useEffect(() => {
@@ -492,7 +516,7 @@ export function LandingPage({ returning = false }: { returning?: boolean }) {
         for (const entry of entries) {
           if (!entry.isIntersecting) continue;
           observer.unobserve(entry.target);
-          if (!preference.matches)
+          if (!preference.matches && surface.dataset.motionPaused !== 'true')
             animations.push(
               entry.target.animate(
                 [
@@ -526,7 +550,7 @@ export function LandingPage({ returning = false }: { returning?: boolean }) {
     ['#questions', 'أسئلة بتتكرر'],
   ] as const;
   return (
-    <div className="landing" ref={root}>
+    <div className="landing" ref={root} data-motion-paused={motionPaused}>
       <header
         className="landing-header"
         onKeyDown={(event) => {
@@ -647,31 +671,48 @@ export function LandingPage({ returning = false }: { returning?: boolean }) {
               {t('من أول اتفاق، لآخر تحصيل.')}
             </p>
           </div>
-          <WorkspacePreview />
+          <WorkspacePreview
+            motionPaused={motionPaused}
+            onToggleMotion={() => setMotionPaused((value) => !value)}
+          />
         </section>
 
         <section
           className="landing-flow-strip"
+          data-land-motion
+          data-motion-active="false"
           aria-label={t('من أول اتفاق، لآخر تحصيل.')}
         >
           <div className="landing-container">
-            <span>{t('شغلك، بإيقاع أهدى.')}</span>
-            <div>
-              {[
-                'اتفق بوضوح',
-                'نفّذ بترتيب',
-                'فوّتِر باحتراف',
-                'تابع مستحقاتك',
-              ].map((text, index) => (
-                <span key={text}>
-                  <small dir="ltr">0{index + 1}</small>
-                  {t(text)}
-                  {index < 3 && (
-                    <span className="landing-flow-line" aria-hidden="true" />
-                  )}
-                </span>
-              ))}
+            <div className="landing-flow-intro">
+              <strong>{t('شغلك، بإيقاع أهدى.')}</strong>
+              <span>{t('خطوة تسلّم خطوة.')}</span>
             </div>
+            <ol className="landing-flow-steps">
+              {flowSteps.map(({ label, icon: Icon, href }, index) => (
+                <li
+                  key={label}
+                  style={
+                    { '--step-delay': `${index * 3 - 12}s` } as CSSProperties
+                  }
+                >
+                  <a href={href} className="landing-flow-step">
+                    <span className="landing-flow-icon" aria-hidden="true">
+                      <Icon size={18} />
+                    </span>
+                    <span className="landing-flow-copy">
+                      <small dir="ltr">0{index + 1}</small>
+                      <strong>{t(label)}</strong>
+                    </span>
+                  </a>
+                  {index < 3 && (
+                    <span className="landing-flow-connector" aria-hidden="true">
+                      <i />
+                    </span>
+                  )}
+                </li>
+              ))}
+            </ol>
           </div>
         </section>
 
@@ -700,6 +741,9 @@ export function LandingPage({ returning = false }: { returning?: boolean }) {
           <div className="landing-feature-grid">
             <article
               className="landing-feature landing-feature-proposal"
+              id="feature-proposals"
+              data-land-motion
+              data-motion-active="false"
               data-land-reveal
             >
               <div className="landing-feature-copy">
@@ -752,6 +796,9 @@ export function LandingPage({ returning = false }: { returning?: boolean }) {
             </article>
             <article
               className="landing-feature landing-feature-projects"
+              id="feature-projects"
+              data-land-motion
+              data-motion-active="false"
               data-land-reveal
             >
               <div className="landing-feature-copy">
@@ -798,6 +845,9 @@ export function LandingPage({ returning = false }: { returning?: boolean }) {
             </article>
             <article
               className="landing-feature landing-feature-invoices"
+              id="feature-invoices"
+              data-land-motion
+              data-motion-active="false"
               data-land-reveal
             >
               <div className="landing-feature-copy">
@@ -839,6 +889,8 @@ export function LandingPage({ returning = false }: { returning?: boolean }) {
             </article>
             <article
               className="landing-feature landing-feature-portal"
+              data-land-motion
+              data-motion-active="false"
               data-land-reveal
             >
               <div className="landing-feature-copy">
@@ -878,6 +930,8 @@ export function LandingPage({ returning = false }: { returning?: boolean }) {
 
         <section
           className="landing-assistant-section landing-container"
+          data-land-motion
+          data-motion-active="false"
           aria-labelledby="landing-assistant-title"
           data-land-reveal
         >
@@ -991,6 +1045,8 @@ export function LandingPage({ returning = false }: { returning?: boolean }) {
 
         <section
           className="landing-finale"
+          data-land-motion
+          data-motion-active="false"
           aria-labelledby="landing-finale-title"
         >
           <div className="landing-container" data-land-reveal>

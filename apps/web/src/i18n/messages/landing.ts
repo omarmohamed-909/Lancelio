@@ -1,4 +1,5 @@
 export const landingEn = {
+  'خطوة تسلّم خطوة.': 'One step leads to the next.',
   'افتح مساحة العمل': 'Open your workspace',
   'إيقاف الحركة': 'Pause motion',
   'متابعة الحركة': 'Resume motion',
