@@ -419,7 +419,7 @@
     padding-block: 4px;
   }
   .auth-form-wrap .form-eyebrow,
-  .auth-footer {
+  .auth-footer > span {
     display: none;
   }
 }

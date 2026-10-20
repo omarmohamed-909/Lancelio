@@ -1,0 +1,19 @@
+.legal-links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 22px;
+  font-size: 12px;
+}
+.legal-links a {
+  color: var(--muted);
+  padding-block: 6px;
+}
+.legal-links a:hover {
+  color: var(--green);
+}
+.auth-footer .legal-links {
+  margin-top: 9px;
+  gap: 4px 18px;
+  font-size: 11px;
+}

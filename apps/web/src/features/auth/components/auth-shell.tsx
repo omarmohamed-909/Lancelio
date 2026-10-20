@@ -5,6 +5,7 @@ import { Check, ArrowUpLeft } from 'lucide-react';
 import { Brand } from '../../../components/ui/brand';
 import { ThemeToggle } from '../../../components/theme/theme-toggle';
 import { LanguageSelect } from '../../../components/language/language-select';
+import { LegalLinks } from '../../legal/components/legal-links';
 export function AuthShell({
   children,
   variant = 'register',
@@ -97,7 +98,8 @@ export function AuthShell({
         </div>
         <div className="auth-form-wrap">{children}</div>
         <footer className="auth-footer">
-          {t('Lancelio · مساحة لشغلك، على طريقتك.')}{' '}
+          <span>{t('Lancelio · مساحة لشغلك، على طريقتك.')}</span>
+          <LegalLinks />
         </footer>
       </main>
     </div>

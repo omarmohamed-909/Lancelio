@@ -26,6 +26,8 @@ import { ThemeToggle } from '../../../components/theme/theme-toggle';
 import { useI18n } from '../../../i18n/language-provider';
 import { useHydrated } from '../../../shared/hooks/use-hydrated';
 import { useLandingMotion } from './use-landing-motion';
+import { LegalLinks } from '../../legal/components/legal-links';
+import { legalOperator } from '../../legal/content';
 
 const previewTabs = [
   { label: 'نظرة عامة', icon: LayoutDashboard },
@@ -1095,6 +1097,10 @@ export function LandingPage({ returning = false }: { returning?: boolean }) {
           </Link>
         </nav>
         <span dir="ltr">© {new Date().getFullYear()} Lancelio.</span>
+        <div className="landing-footer-legal">
+          <LegalLinks />
+          <a href={`mailto:${legalOperator.email}`}>{t('تواصل معنا')}</a>
+        </div>
       </footer>
     </div>
   );
