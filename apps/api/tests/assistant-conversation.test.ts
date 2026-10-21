@@ -6,6 +6,7 @@ import { OpenAIInterpreter } from '../src/modules/assistant/infrastructure/opena
 import type {
   AssistantConversationInput,
   AssistantPlan,
+  AssistantTurnInput,
 } from '../src/modules/assistant/domain/assistant.js';
 
 const scope = '111111111111111111111111';
@@ -16,6 +17,80 @@ const plan: AssistantPlan = {
   query: '',
 };
 const guided = new GuidedInterpreter();
+
+describe('Gemini single-request conversation', () => {
+  const input: AssistantTurnInput = {
+    question: 'How do I make pasta?',
+    previousQuestions: [],
+    conversation: [],
+    firstName: 'Test',
+    locale: 'en',
+  };
+  function envelope(turn: unknown) {
+    return {
+      status: 'completed',
+      steps: [
+        {
+          type: 'model_output',
+          content: [{ type: 'text', text: JSON.stringify(turn) }],
+        },
+      ],
+    };
+  }
+  it.each([
+    { plan, message: 'Boil the pasta following the timing on its packet.' },
+    { plan: { ...plan, intent: 'projects' }, message: null },
+  ])(
+    'routes and replies using one bounded, stateless request',
+    async (turn) => {
+      const transport = vi.fn<typeof fetch>(async () =>
+        Response.json(envelope(turn)),
+      );
+      const interpreter = new GeminiInterpreter(
+        'private-test-key',
+        'gemini-3.5-flash-lite',
+        transport,
+      );
+      expect(await interpreter.reply(input)).toEqual(turn);
+      expect(transport).toHaveBeenCalledTimes(1);
+      const [url, init] = transport.mock.calls[0]!;
+      const body = JSON.parse(String(init?.body));
+      expect(url).toBe(
+        'https://generativelanguage.googleapis.com/v1beta/interactions',
+      );
+      expect(JSON.parse(body.input)).toEqual(input);
+      expect(body.store).toBe(false);
+      expect(body.generation_config.max_output_tokens).toBe(1200);
+      expect(body.response_format.schema.required).toEqual(['plan', 'message']);
+      expect(body.tools).toBeUndefined();
+      expect(String(init?.body)).not.toContain('private-test-key');
+    },
+  );
+  it.each([
+    { plan, message: null },
+    { plan, message: '' },
+    { plan, message: 'x'.repeat(4001) },
+    { plan, message: 'hello', records: [] },
+    { plan: { ...plan, intent: 'projects' }, message: 'A made-up project.' },
+    { plan: { ...plan, intent: 'unsupported' }, message: 'hello' },
+  ])(
+    'rejects malformed or fabricated combined output without a retry',
+    async (turn) => {
+      const transport = vi.fn<typeof fetch>(async () =>
+        Response.json(envelope(turn)),
+      );
+      await expect(
+        new GeminiInterpreter(
+          'private-test-key',
+          'configured-model',
+          transport,
+        ).reply(input),
+      ).rejects.toThrow('Invalid assistant turn');
+      expect(transport).toHaveBeenCalledTimes(1);
+    },
+  );
+});
+
 function setup(intent: AssistantPlan['intent'] = 'chat') {
   const reads = {
     overview: vi.fn(),
@@ -31,6 +106,109 @@ function setup(intent: AssistantPlan['intent'] = 'chat') {
   return { reads, model, service: new AskAssistant(reads, guided, model) };
 }
 describe('Natural conversation and trusted reads', () => {
+  it('classifies and answers a general question in a single provider call without workspace reads', async () => {
+    const { reads, model } = setup();
+    const reply = vi.fn(async () => ({
+      plan,
+      message: 'ابدأ بالمهمة الأهم، وبعدها خد استراحة قصيرة.',
+    }));
+    const service = new AskAssistant(reads, guided, { ...model, reply });
+    const result = await service.execute(
+      scope,
+      { message: 'أرتب يومي إزاي؟', history: ['إزيك'], locale: 'ar' },
+      undefined,
+      { displayName: 'عمر محمد' },
+    );
+    expect(result).toMatchObject({
+      engine: 'gemini',
+      degraded: false,
+      message: 'ابدأ بالمهمة الأهم، وبعدها خد استراحة قصيرة.',
+    });
+    expect(reply).toHaveBeenCalledExactlyOnceWith(
+      {
+        question: 'أرتب يومي إزاي؟',
+        previousQuestions: ['إزيك'],
+        conversation: [],
+        firstName: 'عمر',
+        locale: 'ar',
+      },
+      undefined,
+    );
+    expect(model.interpret).not.toHaveBeenCalled();
+    expect(model.respond).not.toHaveBeenCalled();
+    for (const read of Object.values(reads))
+      expect(read).not.toHaveBeenCalled();
+  });
+  it.each([
+    ['ازاي أعمل مكرونة؟', 'ar'],
+    ['اعمل ملخص عن تاريخ الأهرامات', 'ar'],
+    ['عايز أفكار لمشروع تخرج', 'ar'],
+    ['How do I make pasta?', 'en'],
+    ['Summarize the history of the pyramids', 'en'],
+  ] as const)(
+    'explains a quota failure for %s without unrelated product instructions or data reads',
+    async (message, locale) => {
+      const { reads, model } = setup();
+      const reply = vi.fn(async () => {
+        throw { status: 429 };
+      });
+      const result = await new AskAssistant(reads, guided, {
+        ...model,
+        reply,
+      }).execute(scope, { message, locale, history: [] });
+      expect(result).toMatchObject({
+        engine: 'guided',
+        degraded: true,
+        plan: { intent: 'clarify' },
+        records: [],
+        facts: null,
+      });
+      expect(result.message).toContain(
+        locale === 'ar' ? 'حدّ طلبات' : 'request limit',
+      );
+      expect(reply).toHaveBeenCalledTimes(1);
+      expect(model.interpret).not.toHaveBeenCalled();
+      expect(model.respond).not.toHaveBeenCalled();
+      for (const read of Object.values(reads))
+        expect(read).not.toHaveBeenCalled();
+    },
+  );
+  it('does not display model-invented records or retry a malformed combined turn', async () => {
+    const { reads, model } = setup();
+    const reply = vi.fn(async () => ({
+      plan: { ...plan, intent: 'projects' as const },
+      message: 'Your project is finished and paid.',
+    }));
+    const result = await new AskAssistant(reads, guided, {
+      ...model,
+      reply,
+    }).execute(scope, { message: 'my open projects', history: [] });
+    expect(result).toMatchObject({
+      message: null,
+      degraded: true,
+      records: [],
+    });
+    expect(reads.projects).toHaveBeenCalledExactlyOnceWith(scope, 'open');
+    expect(reply).toHaveBeenCalledTimes(1);
+    expect(model.interpret).not.toHaveBeenCalled();
+  });
+  it('does not fall back or read records after a combined request is cancelled', async () => {
+    const { reads, model } = setup();
+    const controller = new AbortController();
+    const reply = vi.fn(async () => {
+      controller.abort();
+      throw new Error('cancelled');
+    });
+    await expect(
+      new AskAssistant(reads, guided, { ...model, reply }).execute(
+        scope,
+        { message: 'open projects', history: [] },
+        controller.signal,
+      ),
+    ).rejects.toThrow('cancelled');
+    for (const read of Object.values(reads))
+      expect(read).not.toHaveBeenCalled();
+  });
   it('generates an arbitrary follow-up with bounded context and only the authenticated first name', async () => {
     const { reads, model, service } = setup();
     const conversation = [
@@ -110,7 +288,11 @@ describe('Natural conversation and trusted reads', () => {
           message: 'help me brainstorm',
           history: [],
         }),
-      ).toMatchObject({ message: null, engine: 'guided', degraded: true });
+      ).toMatchObject({
+        message: expect.stringContaining('cannot reach'),
+        engine: 'guided',
+        degraded: true,
+      });
     },
   );
   it('preserves reviewed help on provider failure and never misrepresents cancellation as an answer', async () => {

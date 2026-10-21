@@ -413,7 +413,10 @@ describe('Gemini interpreter adapter', () => {
       new GeminiInterpreter(
         'test',
         'model',
-        async () => new Response(JSON.stringify(completed())),
+        async () =>
+          new Response(
+            JSON.stringify(completed(JSON.stringify({ plan, message: null }))),
+          ),
       ),
     );
     expect(service.mode).toBe('gemini');

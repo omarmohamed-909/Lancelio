@@ -4,14 +4,22 @@ import type {
   AssistantInput,
   AssistantPlan,
   AssistantConversationInput,
+  AssistantTurn,
+  AssistantTurnInput,
 } from '../domain/assistant.js';
-import { isAssistantPlan, isAssistantMessage } from '../domain/assistant.js';
+import {
+  isAssistantPlan,
+  isAssistantMessage,
+  isAssistantTurn,
+} from '../domain/assistant.js';
 import {
   AssistantProviderError,
   interpretationInstructions,
   interpretationSchema,
   conversationInstructions,
   conversationSchema,
+  turnInstructions,
+  turnSchema,
 } from './interpretation-contract.js';
 
 export class GeminiInterpreter implements AssistantInterpreter {
@@ -22,6 +30,21 @@ export class GeminiInterpreter implements AssistantInterpreter {
     private readonly model: string,
     private readonly transport: typeof fetch = fetch,
   ) {}
+
+  async reply(
+    input: AssistantTurnInput,
+    signal?: AbortSignal,
+  ): Promise<AssistantTurn> {
+    const result = await this.request(
+      turnInstructions,
+      turnSchema,
+      input,
+      signal,
+      1200,
+    );
+    if (!isAssistantTurn(result)) throw new Error('Invalid assistant turn');
+    return result;
+  }
 
   async interpret(
     input: AssistantInput,
@@ -68,6 +91,7 @@ export class GeminiInterpreter implements AssistantInterpreter {
     schema: object,
     input: object,
     signal?: AbortSignal,
+    maxOutputTokens = 800,
   ): Promise<unknown> {
     const timeout = AbortSignal.timeout(15000);
     const response = await this.transport(
@@ -86,7 +110,7 @@ export class GeminiInterpreter implements AssistantInterpreter {
           system_instruction: instructions,
           input: JSON.stringify(input),
           generation_config: {
-            max_output_tokens: 800,
+            max_output_tokens: maxOutputTokens,
             thinking_level:
               this.model === 'gemini-3.1-flash-lite' ||
               this.model === 'gemini-3.5-flash-lite'

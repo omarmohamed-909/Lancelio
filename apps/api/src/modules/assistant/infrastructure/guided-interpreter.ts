@@ -98,7 +98,10 @@ export class GuidedInterpreter implements AssistantInterpreter {
         });
       }
     }
-    if (help || /مساعد|مساعدة|تقدر تعمل ايه|help\b|what can you/u.test(text))
+    if (
+      (help && topic !== 'navigation') ||
+      /^(?:مساعد[هة]?|تقدر تعمل ايه|help|what can you do)[؟?!.]*$/u.test(text)
+    )
       return { ...plan, intent: 'help', topic };
     if (
       /مستحق|متبقي|متبقى|فلوس|غير\s*مدفوع|outstanding|receivable|unpaid|owed|owes?\b/u.test(
@@ -106,7 +109,7 @@ export class GuidedInterpreter implements AssistantInterpreter {
       )
     )
       return { ...plan, intent: 'receivables' };
-    if (topic === 'projects') {
+    if (topic === 'projects' && /مشاريع|\bprojects\b/u.test(text)) {
       const status: AssistantPlan['status'] = /متوقف|on.hold|paused/u.test(text)
         ? 'on_hold'
         : /مكتمل|خلص|completed|finished/u.test(text)
@@ -121,7 +124,10 @@ export class GuidedInterpreter implements AssistantInterpreter {
       return { ...plan, intent: 'projects', status };
     }
     if (
-      /ملخص|نظرة|ارقام|شغلي|شغلى|overview|summary|dashboard|my work/u.test(text)
+      /^(?:ملخص|نظرة عامة|ارقام|overview|summary|dashboard)[؟?!.]*$/u.test(
+        text,
+      ) ||
+      /شغلي|شغلى|my work|workspace summary/u.test(text)
     )
       return { ...plan, intent: 'overview' };
     if (

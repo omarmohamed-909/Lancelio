@@ -1,4 +1,5 @@
 export const assistantEn = {
+  'الفهم الذكي غير متاح حاليًا.': 'AI conversation is temporarily unavailable.',
   'عن المحادثة والخصوصية': 'Conversation & privacy',
   'آخر الرسائل': 'Latest messages',
   'المشاريع المفتوحة': 'Open projects',

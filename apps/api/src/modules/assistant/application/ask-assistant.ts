@@ -1,10 +1,15 @@
 import { ApplicationError } from '../../../shared/domain/application-error.js';
 import { validateId } from '../../../shared/domain/identifiers.js';
-import { isAssistantPlan, isAssistantMessage } from '../domain/assistant.js';
+import {
+  isAssistantPlan,
+  isAssistantMessage,
+  isAssistantTurn,
+} from '../domain/assistant.js';
 import {
   conversationLocale,
   firstName,
   guidedGreeting,
+  unavailableConversation,
 } from '../domain/conversation.js';
 import type {
   AssistantInput,
@@ -13,10 +18,16 @@ import type {
   AssistantRecord,
   AssistantFacts,
   AssistantConversationInput,
+  AssistantTurnInput,
+  AssistantTurn,
 } from '../domain/assistant.js';
 
 export interface AssistantInterpreter {
   readonly provider?: 'openai' | 'gemini';
+  reply?(
+    input: AssistantTurnInput,
+    signal?: AbortSignal,
+  ): Promise<AssistantTurn>;
   interpret(
     input: AssistantInput,
     signal?: AbortSignal,
@@ -84,23 +95,44 @@ export class AskAssistant {
       );
     let engine: AssistantResult['engine'] = 'guided',
       degraded = false;
+    const name = firstName(actor?.displayName ?? '');
+    let message: string | null = null;
+    let combined = false;
+    let failure: unknown;
     let plan: AssistantPlan;
     if (this.intelligent) {
       try {
-        plan = await this.intelligent.interpret(input, signal);
+        if (this.intelligent.reply) {
+          const turn = await this.intelligent.reply(
+            {
+              question: input.message,
+              previousQuestions: input.history,
+              conversation: input.conversation ?? [],
+              firstName: name,
+              locale: conversationLocale(input),
+            },
+            signal,
+          );
+          if (!isAssistantTurn(turn)) throw new Error('Invalid assistant turn');
+          plan = turn.plan;
+          message = turn.message?.trim() ?? null;
+          combined = true;
+        } else plan = await this.intelligent.interpret(input, signal);
         if (!isAssistantPlan(plan)) throw new Error('Invalid interpretation');
         engine = this.intelligent.provider ?? 'openai';
       } catch (error) {
         if (signal?.aborted) throw error;
         degraded = true;
+        failure = error;
         plan = await this.guided.interpret(input, signal);
       }
     } else plan = await this.guided.interpret(input, signal);
     if (!isAssistantPlan(plan)) throw new Error('Invalid assistant plan');
     if (signal?.aborted) throw new Error('Assistant request cancelled');
-    const name = firstName(actor?.displayName ?? '');
-    let message = plan.intent === 'chat' ? guidedGreeting(input, name) : null;
+    if (!combined && plan.intent === 'chat')
+      message = guidedGreeting(input, name);
     if (
+      !combined &&
       !degraded &&
       this.intelligent?.respond &&
       ['chat', 'help', 'clarify'].includes(plan.intent)
@@ -123,10 +155,22 @@ export class AskAssistant {
       } catch (error) {
         if (signal?.aborted) throw error;
         degraded = true;
+        failure = error;
         engine = 'guided';
       }
     }
     if (signal?.aborted) throw new Error('Assistant request cancelled');
+    if (
+      !message &&
+      (plan.intent === 'chat' ||
+        (plan.intent === 'clarify' && plan.topic === 'navigation'))
+    ) {
+      message = unavailableConversation(
+        input,
+        Boolean(this.intelligent),
+        failure,
+      );
+    }
     const result: AssistantResult = {
       message,
       plan,

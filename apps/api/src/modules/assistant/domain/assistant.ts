@@ -73,6 +73,22 @@ export interface AssistantConversationInput {
   plan: AssistantPlan;
 }
 
+export type AssistantTurnInput = Omit<AssistantConversationInput, 'plan'>;
+export interface AssistantTurn {
+  plan: AssistantPlan;
+  message: string | null;
+}
+
+export function isAssistantTurn(value: unknown): value is AssistantTurn {
+  if (!value || typeof value !== 'object') return false;
+  const turn = value as Record<string, unknown>;
+  if (Object.keys(turn).length !== 2 || !isAssistantPlan(turn.plan))
+    return false;
+  return ['chat', 'help', 'clarify'].includes(turn.plan.intent)
+    ? isAssistantMessage(turn.message)
+    : turn.message === null;
+}
+
 export function isAssistantMessage(value: unknown): value is string {
   return (
     typeof value === 'string' &&

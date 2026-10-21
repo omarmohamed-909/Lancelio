@@ -17,14 +17,31 @@ try {
       `Assistant: ${configuration!.provider} / ${configuration!.model}. Configuration complete; connection not tested. Use --live for one synthetic question.`,
     );
   } else {
-    const plan = await interpreter.interpret({
-      message: 'What are my open projects?',
-      history: [],
-    });
-    if (plan.intent !== 'projects' || plan.status !== 'open')
-      throw new Error('Unexpected interpretation');
+    const conversational = 'reply' in interpreter;
+    if (conversational) {
+      const turn = await interpreter.reply({
+        question: 'What is Lancelio?',
+        previousQuestions: [],
+        conversation: [],
+        firstName: '',
+        locale: 'en',
+      });
+      if (
+        turn.plan.intent !== 'help' ||
+        turn.plan.topic !== 'product' ||
+        !turn.message?.trim()
+      )
+        throw new Error('Unexpected assistant conversation');
+    } else {
+      const plan = await interpreter.interpret({
+        message: 'What are my open projects?',
+        history: [],
+      });
+      if (plan.intent !== 'projects' || plan.status !== 'open')
+        throw new Error('Unexpected interpretation');
+    }
     console.info(
-      `Assistant: ${configuration!.provider} / ${configuration!.model}. Live connection and structured interpretation passed.`,
+      `Assistant: ${configuration!.provider} / ${configuration!.model}. Live connection and ${conversational ? 'single-request conversation' : 'structured interpretation'} passed.`,
     );
   }
 } catch (error) {

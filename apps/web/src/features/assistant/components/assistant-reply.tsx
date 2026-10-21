@@ -50,9 +50,7 @@ export function AssistantAnswer({
     >
       {reply.degraded && (
         <p className="assistant-guided-note">
-          {t(
-            'الفهم الذكي غير متاح حاليًا. دي نتيجة الإرشادات والاستعلامات المحددة.',
-          )}
+          {t('الفهم الذكي غير متاح حاليًا.')}
         </p>
       )}
       {reply.message && (
