@@ -709,7 +709,7 @@
     top: 0;
     right: 0;
     width: 260px;
-    z-index: 20;
+    z-index: 50;
     box-shadow: -12px 0 30px #173a3210;
     visibility: hidden;
     transform: translateX(100%);
@@ -719,6 +719,9 @@
     visibility: visible;
     transform: translateX(0);
   }
+  .sidebar-brand {
+    flex-direction: row-reverse;
+  }
   .sidebar-close,
   .mobile-menu {
     display: inline-grid;
@@ -727,7 +730,7 @@
     display: block;
     position: fixed;
     inset: 0;
-    z-index: 19;
+    z-index: 49;
     border: 0;
     background: #18231955;
     opacity: 0;
