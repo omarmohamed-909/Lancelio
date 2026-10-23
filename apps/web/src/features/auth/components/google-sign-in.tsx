@@ -2,7 +2,6 @@
 import Script from 'next/script';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import { useI18n } from '../../../i18n/language-provider';
 import { authApi, errorMessage } from '../services/auth-api';
 import type { GoogleSignInData } from '../services/auth-api';
@@ -30,9 +29,7 @@ interface GoogleIdentityApi {
     },
   ): void;
 }
-type Step =
-  | { kind: 'onboarding-required'; email: string; name: string }
-  | { kind: 'link-required'; email: string };
+type Step = { kind: 'onboarding-required'; email: string; name: string };
 
 export function GoogleSignIn({
   disabled,
@@ -55,7 +52,6 @@ export function GoogleSignIn({
   const [step, setStep] = useState<Step | null>(null);
   const [name, setName] = useState('');
   const [workspaceName, setWorkspaceName] = useState('');
-  const [password, setPassword] = useState('');
   const [attempt, setAttempt] = useState(0);
   const button = useRef<HTMLDivElement>(null);
   const credential = useRef('');
@@ -109,7 +105,6 @@ export function GoogleSignIn({
         if (alive.current) {
           setBusy(false);
           onBusyChange(false);
-          setPassword('');
         }
       }
     },
@@ -182,7 +177,6 @@ export function GoogleSignIn({
     credential.current = '';
     setStep(null);
     onFlowChange(false);
-    setPassword('');
     setMessage('');
     setReady(false);
     setAttempt((value) => value + 1);
@@ -220,9 +214,8 @@ export function GoogleSignIn({
           onSubmit={(event) => {
             event.preventDefault();
             if (
-              step.kind === 'onboarding-required' &&
-              (!displayNameSchema.safeParse(name).success ||
-                !displayNameSchema.safeParse(workspaceName).success)
+              !displayNameSchema.safeParse(name).success ||
+              !displayNameSchema.safeParse(workspaceName).success
             ) {
               setMessage('اكتب اسمك واسم مساحة العمل، من حرفين إلى ١٠٠ حرف.');
               focusTarget.current?.focus();
@@ -230,84 +223,44 @@ export function GoogleSignIn({
             }
             void exchange({
               credential: credential.current,
-              ...(step.kind === 'link-required'
-                ? { linkPassword: password }
-                : { name, workspaceName }),
+              name,
+              workspaceName,
             });
           }}
         >
-          <h2>
-            {step.kind === 'link-required'
-              ? t('اربط حسابك بـGoogle')
-              : t('خطوة أخيرة لمساحتك')}
-          </h2>
+          <h2>{t('خطوة أخيرة لمساحتك')}</h2>
           <p className="google-auth-email" dir="ltr">
             {step.email}
           </p>
           <fieldset disabled={busy || disabled}>
-            {step.kind === 'link-required' ? (
-              <>
-                <p className="field-help">
-                  {t(
-                    'البريد ده مسجل عندنا. أكّد كلمة مرور حسابك الحالي لربط Google بنفس الحساب وبياناته.',
-                  )}
-                </p>
-                <div className="field">
-                  <label htmlFor="google-link-password">
-                    {t('كلمة مرور حسابك الحالي')}
-                  </label>
-                  <input
-                    ref={focusTarget}
-                    id="google-link-password"
-                    type="password"
-                    autoComplete="current-password"
-                    dir="ltr"
-                    value={password}
-                    onChange={(event) => setPassword(event.target.value)}
-                    required
-                    maxLength={512}
-                  />
-                </div>
-                <Link href="/forgot-password">{t('نسيت كلمة المرور؟')}</Link>
-              </>
-            ) : (
-              <>
-                <div className="field">
-                  <label htmlFor="google-name">{t('اسمك')}</label>
-                  <input
-                    ref={focusTarget}
-                    id="google-name"
-                    autoComplete="name"
-                    value={name}
-                    onChange={(event) => setName(event.target.value)}
-                    required
-                    maxLength={200}
-                  />
-                </div>
-                <div className="field">
-                  <label htmlFor="google-workspace">
-                    {t('اسم مساحة العمل')}
-                  </label>
-                  <input
-                    id="google-workspace"
-                    autoComplete="organization"
-                    value={workspaceName}
-                    onChange={(event) => setWorkspaceName(event.target.value)}
-                    required
-                    maxLength={200}
-                  />
-                </div>
-              </>
-            )}
+            <div className="field">
+              <label htmlFor="google-name">{t('اسمك')}</label>
+              <input
+                ref={focusTarget}
+                id="google-name"
+                autoComplete="name"
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+                required
+                maxLength={200}
+              />
+            </div>
+            <div className="field">
+              <label htmlFor="google-workspace">{t('اسم مساحة العمل')}</label>
+              <input
+                id="google-workspace"
+                autoComplete="organization"
+                value={workspaceName}
+                onChange={(event) => setWorkspaceName(event.target.value)}
+                required
+                maxLength={200}
+              />
+            </div>
             <button
               className="button button-primary submit-button"
               type="submit"
             >
-              {busy
-                ? t('جاري تسجيل الدخول…')
-                : step.kind === 'link-required'
-                  ? t('ربط الحساب والمتابعة')
-                  : t('إنشاء مساحتي والمتابعة')}
+              {busy ? t('جاري تسجيل الدخول…') : t('إنشاء مساحتي والمتابعة')}
             </button>
           </fieldset>
           <button

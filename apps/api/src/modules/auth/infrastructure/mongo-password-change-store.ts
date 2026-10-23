@@ -77,7 +77,11 @@ export class MongoPasswordChangeStore implements PasswordChangeStore {
             passwordHash: expectedHash,
           },
           {
-            $set: { passwordHash: newHash, passwordChangedAt: now },
+            $set: {
+              passwordHash: newHash,
+              passwordChangedAt: now,
+              passwordLoginNeedsVerification: false,
+            },
             $inc: { authFence: 1 },
           },
           { session: transaction },

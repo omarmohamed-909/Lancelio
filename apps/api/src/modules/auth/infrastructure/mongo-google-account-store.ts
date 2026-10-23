@@ -7,6 +7,8 @@ import type {
 } from '../application/ports/google-auth.js';
 import type { RegistrationModels } from './registration-models.js';
 import type { GoogleChallengeModel } from './google-challenge-model.js';
+import type { SessionModel } from './session-model.js';
+import type { RecoveryModels } from './recovery-models.js';
 
 const digest = (nonce: string) =>
   createHash('sha256').update(nonce).digest('hex');
@@ -14,6 +16,8 @@ export class MongoGoogleAccountStore implements GoogleAccountStore {
   constructor(
     private readonly models: RegistrationModels,
     private readonly challenges: GoogleChallengeModel,
+    private readonly sessions: SessionModel,
+    private readonly jobs: RecoveryModels['Job'],
   ) {}
   async challenge(nonce: string, expiresAt: Date) {
     await this.challenges.create({ _id: digest(nonce), expiresAt });
@@ -32,6 +36,7 @@ export class MongoGoogleAccountStore implements GoogleAccountStore {
           subject: user.googleSubject ?? null,
           passwordHash: user.passwordHash ?? null,
           status: user.status,
+          emailVerified: user.emailVerified,
         }
       : null;
   }
@@ -50,6 +55,14 @@ export class MongoGoogleAccountStore implements GoogleAccountStore {
             );
           if (input.existing) {
             const known = input.existing;
+            const firstLink = known.subject === null;
+            if (firstLink && !input.profile.emailAuthoritative)
+              throw new ApplicationError(
+                'GOOGLE_EMAIL_NOT_AUTHORITATIVE',
+                'Email ownership cannot be confirmed',
+              );
+            const quarantinePassword =
+              firstLink && !known.emailVerified && known.passwordHash !== null;
             const updated = await this.models.User.updateOne(
               {
                 _id: known.userId,
@@ -58,7 +71,16 @@ export class MongoGoogleAccountStore implements GoogleAccountStore {
                 passwordHash: known.passwordHash,
               },
               {
-                $set: { googleSubject: input.profile.subject },
+                $set: {
+                  googleSubject: input.profile.subject,
+                  ...(firstLink ? { emailVerified: true } : {}),
+                  ...(quarantinePassword
+                    ? {
+                        passwordLoginNeedsVerification: true,
+                        passwordChangedAt: input.now,
+                      }
+                    : {}),
+                },
                 $inc: { authFence: 1 },
               },
               { session },
@@ -68,7 +90,20 @@ export class MongoGoogleAccountStore implements GoogleAccountStore {
                 'GOOGLE_ACCOUNT_CONFLICT',
                 'Account changed; sign in again',
               );
-            // Linking adds an identity only. It never overwrites local profile or workspace data.
+            if (firstLink) {
+              // A password account may have been created before its owner verified the email.
+              // Retire prior sessions and recovery grants atomically with the identity link.
+              await this.sessions.updateMany(
+                { user: known.userId, revokedAt: null },
+                { $set: { revokedAt: input.now } },
+                { session },
+              );
+              await this.jobs.updateMany(
+                { user: known.userId, invalidatedAt: null },
+                { $set: { invalidatedAt: input.now, payload: '', done: true } },
+                { session },
+              );
+            }
             return { userId: known.userId, passwordHash: known.passwordHash };
           }
           if (input.name === undefined || input.workspaceName === undefined)

@@ -6,18 +6,13 @@ import type {
   GoogleTokenVerifier,
 } from './ports/google-auth.js';
 import type { SessionStore } from './ports/session-store.js';
-import type {
-  Clock,
-  PasswordVerifier,
-  SessionTokens,
-} from './ports/session-tokens.js';
+import type { Clock, SessionTokens } from './ports/session-tokens.js';
 
 export class GoogleSignIn {
   constructor(
     private readonly verifier: GoogleTokenVerifier,
     private readonly accounts: GoogleAccountStore,
     private readonly sessions: SessionStore,
-    private readonly passwords: PasswordVerifier,
     private readonly tokens: SessionTokens,
     private readonly clock: Clock,
   ) {}
@@ -27,7 +22,6 @@ export class GoogleSignIn {
     nonce: string;
     name?: string;
     workspaceName?: string;
-    linkPassword?: string;
   }) {
     const now = this.clock.now();
     const profile = await this.verifier.verify(
@@ -47,14 +41,10 @@ export class GoogleSignIn {
           'GOOGLE_ACCOUNT_CONFLICT',
           'Use the sign-in method already linked to this account',
         );
-      if (input.linkPassword === undefined)
-        return { kind: 'link-required' as const, email: profile.email };
-      if (
-        !(await this.passwords.verify(account.passwordHash, input.linkPassword))
-      )
+      if (!profile.emailAuthoritative)
         throw new ApplicationError(
-          'INVALID_CREDENTIALS',
-          'Account password is incorrect',
+          'GOOGLE_EMAIL_NOT_AUTHORITATIVE',
+          'Google cannot confirm current ownership of this existing email account',
         );
     }
     const name = input.name?.trim();
@@ -110,6 +100,7 @@ export class GoogleSignIn {
         expiresAt: refreshExpiresAt,
       },
       user.passwordHash,
+      'google',
     );
     return {
       kind: 'authenticated' as const,

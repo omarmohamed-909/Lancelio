@@ -1,4 +1,8 @@
 export const googleAuthEn = {
+  'Google مش بيؤكد ملكية البريد ده حاليًا. استخدم طريقة الدخول الأصلية أو حساب Gmail أو Google Workspace.':
+    'Google cannot confirm current ownership of this email. Use your original sign-in method or a Gmail or Google Workspace account.',
+  'كمّل باستخدام Google. لتفعيل الدخول بكلمة المرور، عيّن كلمة مرور جديدة من إعدادات الأمان أو استرجاع البريد.':
+    'Continue with Google. To enable password sign-in, set a new password in security settings or through email recovery.',
   'حاول مرة تانية': 'Try again',
   'استرجاع كلمة المرور': 'Password recovery',
   'لو بتدخل بحساب Google ولسه معندكش كلمة مرور، تقدر تنشئها بعد تأكيد بريدك من صفحة استرجاع كلمة المرور، لما خدمة البريد تكون متاحة.':
@@ -17,13 +21,8 @@ export const googleAuthEn = {
     'Google sign-in is unavailable right now. You can use your email and password.',
   'حسابك بيستخدم Google. لإنشاء كلمة مرور، استخدم «نسيت كلمة المرور؟» لتأكيد بريدك أولًا.':
     'Your account uses Google. To create a password, use “Forgot password?” to verify your email first.',
-  'اربط حسابك بـGoogle': 'Link your account with Google',
   'خطوة أخيرة لمساحتك': 'One last step for your workspace',
-  'البريد ده مسجل عندنا. أكّد كلمة مرور حسابك الحالي لربط Google بنفس الحساب وبياناته.':
-    'This email is already registered. Confirm your existing account password to link Google and keep the same account and data.',
-  'كلمة مرور حسابك الحالي': 'Your existing account password',
   'اسم مساحة العمل': 'Workspace name',
-  'ربط الحساب والمتابعة': 'Link account and continue',
   'إنشاء مساحتي والمتابعة': 'Create my workspace and continue',
   'اختيار حساب Google آخر': 'Choose another Google account',
   'أو باستخدام البريد الإلكتروني': 'Or use your email',

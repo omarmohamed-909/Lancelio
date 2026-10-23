@@ -101,7 +101,11 @@ describe('Google sign-in and account integrity', () => {
     await database?.close();
     await replica?.stop();
   });
-  async function begin(subject = 'subject-one', email = 'person@gmail.com') {
+  async function begin(
+    subject = 'subject-one',
+    email = 'person@gmail.com',
+    hd?: string,
+  ) {
     const challenge = await request(app)
       .post('/api/v1/auth/google/challenge')
       .set('Origin', origin)
@@ -115,6 +119,7 @@ describe('Google sign-in and account integrity', () => {
       email,
       email_verified: true,
       name: 'Google Person',
+      ...(hd ? { hd } : {}),
       nonce,
     })
       .setProtectedHeader({ alg: 'RS256', kid: 'test' })
@@ -268,34 +273,142 @@ describe('Google sign-in and account integrity', () => {
     expect(await models.Workspace.countDocuments()).toBe(1);
     expect(await models.Membership.countDocuments()).toBe(1);
   });
-  it('requires the existing account password before linking even a verified Gmail identity and keeps all local data', async () => {
+  it('links verified Gmail immediately, preserves local data and retires unverified password access', async () => {
     const local = await register.execute({
       name: 'Original Local Name',
       email: 'person@gmail.com',
       password,
       workspaceName: 'Original Studio',
     });
-    const flow = await begin();
-    expect((await exchange(flow)).body.data).toEqual({
-      kind: 'link-required',
-      email: 'person@gmail.com',
-    });
-    expect((await exchange(flow, { linkPassword: 'incorrect' })).status).toBe(
-      401,
-    );
-    expect(
-      (await models.User.findOne().select('+googleSubject').lean())
-        ?.googleSubject,
-    ).toBeNull();
-    const linked = await exchange(flow, {
-      linkPassword: password,
+    const login = await request(app)
+      .post('/api/v1/auth/login')
+      .set('Origin', origin)
+      .send({ email: 'person@gmail.com', password });
+    expect(login.status).toBe(200);
+    const oldHash = (
+      await models.User.findOne().select('+passwordHash').orFail()
+    ).passwordHash;
+    await recovery.service.request('person@gmail.com');
+    await recovery.service.deliverNext();
+    const oldRecoveryToken = sent[0]!.token;
+    const linked = await exchange(await begin(), {
       name: 'Injected Name',
       workspaceName: 'Injected Workspace',
     });
     expect(linked.status).toBe(200);
+    expect(linked.body.data.kind).toBe('authenticated');
     expect(linked.body.data.user).toEqual(local.user);
     expect(linked.body.data.workspace).toEqual(local.workspace);
     expect(await models.User.countDocuments()).toBe(1);
+    expect(await models.Workspace.countDocuments()).toBe(1);
+    const user = await models.User.findOne()
+      .select('+passwordHash +passwordLoginNeedsVerification')
+      .orFail();
+    expect(user.passwordHash).toBe(oldHash);
+    expect(user.emailVerified).toBe(true);
+    expect(user.passwordLoginNeedsVerification).toBe(true);
+    expect(
+      (
+        await request(app)
+          .get('/api/v1/auth/me')
+          .set('Authorization', `Bearer ${login.body.data.accessToken}`)
+      ).status,
+    ).toBe(401);
+    const oldCookie = (
+      login.headers['set-cookie'] as unknown as string[]
+    )[0]!.split(';')[0]!;
+    expect(
+      (
+        await request(app)
+          .post('/api/v1/auth/refresh')
+          .set('Origin', origin)
+          .set('Cookie', oldCookie)
+          .send({})
+      ).status,
+    ).toBe(401);
+    expect(
+      (
+        await request(app)
+          .post('/api/v1/auth/reset-password')
+          .set('Origin', origin)
+          .send({
+            token: oldRecoveryToken,
+            password: 'another secure password value',
+          })
+      ).status,
+    ).toBe(422);
+    expect(
+      (
+        await request(app)
+          .post('/api/v1/auth/login')
+          .set('Origin', origin)
+          .send({ email: 'person@gmail.com', password })
+      ).body.error.code,
+    ).toBe('PASSWORD_SIGN_IN_CONFIRMATION_REQUIRED');
+    expect(
+      (
+        await request(app)
+          .get('/api/v1/auth/me')
+          .set('Authorization', `Bearer ${linked.body.data.accessToken}`)
+      ).status,
+    ).toBe(200);
+    await expect(
+      new MongoSessionStore(models, sessionModel).createSession(
+        {
+          userId: local.user.id,
+          workspaceId: local.workspace.id,
+          sessionId: 'stale-password-session',
+          refreshTokenHash: 'digest',
+          expiresAt: new Date(Date.now() + 60000),
+        },
+        oldHash!,
+      ),
+    ).rejects.toMatchObject({ code: 'INVALID_CREDENTIALS' });
+    expect(
+      await sessionModel.exists({ _id: 'stale-password-session' }),
+    ).toBeNull();
+    expect((await exchange(await begin())).status).toBe(200);
+    expect(
+      (
+        await models.User.findOne()
+          .select('+passwordLoginNeedsVerification')
+          .orFail()
+      ).passwordLoginNeedsVerification,
+    ).toBe(true);
+    const newPassword = 'a newly selected secure password';
+    const changed = await request(app)
+      .post('/api/v1/settings/password')
+      .set('Origin', origin)
+      .set('Authorization', `Bearer ${linked.body.data.accessToken}`)
+      .send({ currentPassword: password, newPassword });
+    expect(changed.status).toBe(204);
+    expect(
+      (
+        await request(app)
+          .post('/api/v1/auth/login')
+          .set('Origin', origin)
+          .send({ email: 'person@gmail.com', password: newPassword })
+      ).status,
+    ).toBe(200);
+    expect(
+      (
+        await request(app)
+          .get('/api/v1/auth/me')
+          .set('Authorization', `Bearer ${linked.body.data.accessToken}`)
+      ).status,
+    ).toBe(401);
+  });
+  it('retains password sign-in for an already verified local email after direct Google linking', async () => {
+    await register.execute({
+      name: 'Verified Person',
+      email: 'person@gmail.com',
+      password,
+      workspaceName: 'Studio',
+    });
+    await models.User.updateOne({}, { $set: { emailVerified: true } });
+    expect((await exchange(await begin())).body.data.kind).toBe(
+      'authenticated',
+    );
     expect(
       (
         await request(app)
@@ -305,10 +418,102 @@ describe('Google sign-in and account integrity', () => {
       ).status,
     ).toBe(200);
   });
+  it('does not silently merge a third-party email that Google is not authoritative for', async () => {
+    await register.execute({
+      name: 'Local Person',
+      email: 'person@example.com',
+      password,
+      workspaceName: 'Studio',
+    });
+    const flow = await begin('external-subject', 'person@example.com');
+    const rejected = await exchange(flow);
+    expect(rejected.status).toBe(422);
+    expect(rejected.body.error.code).toBe('GOOGLE_EMAIL_NOT_AUTHORITATIVE');
+    expect((await exchange(flow, { linkPassword: password })).status).toBe(422);
+    expect(
+      (await models.User.findOne().select('+googleSubject').orFail())
+        .googleSubject,
+    ).toBeNull();
+    expect(await sessionModel.countDocuments()).toBe(0);
+  });
+  it('links an authoritative Workspace identity and restores quarantined password access through fresh email recovery', async () => {
+    const local = await register.execute({
+      name: 'Workspace Person',
+      email: 'person@studio.example',
+      password,
+      workspaceName: 'Original Studio',
+    });
+    const linked = await exchange(
+      await begin(
+        'workspace-subject',
+        'person@studio.example',
+        'studio.example',
+      ),
+    );
+    expect(linked.status).toBe(200);
+    expect(linked.body.data.user.id).toBe(local.user.id);
+    await recovery.service.request('person@studio.example');
+    expect(await recovery.service.deliverNext()).toBe(true);
+    expect(sent).toHaveLength(1);
+    const newPassword = 'fresh verified email recovery password';
+    expect(
+      (
+        await request(app)
+          .post('/api/v1/auth/reset-password')
+          .set('Origin', origin)
+          .send({ token: sent[0]!.token, password: newPassword })
+      ).status,
+    ).toBe(204);
+    expect(
+      (
+        await models.User.findOne()
+          .select('+passwordLoginNeedsVerification')
+          .orFail()
+      ).passwordLoginNeedsVerification,
+    ).toBe(false);
+    expect(
+      (
+        await request(app)
+          .post('/api/v1/auth/login')
+          .set('Origin', origin)
+          .send({ email: 'person@studio.example', password: newPassword })
+      ).status,
+    ).toBe(200);
+    expect(
+      (
+        await request(app)
+          .get('/api/v1/auth/me')
+          .set('Authorization', `Bearer ${linked.body.data.accessToken}`)
+      ).status,
+    ).toBe(401);
+    expect(
+      (
+        await exchange(
+          await begin(
+            'workspace-subject',
+            'person@studio.example',
+            'studio.example',
+          ),
+        )
+      ).status,
+    ).toBe(200);
+  });
+  it('does not deliver recovery jobs requested before an unverified password account is linked', async () => {
+    await register.execute({
+      name: 'Local Person',
+      email: 'person@gmail.com',
+      password,
+      workspaceName: 'Studio',
+    });
+    await recovery.service.request('person@gmail.com');
+    expect((await exchange(await begin())).status).toBe(200);
+    expect(await recovery.service.deliverNext()).toBe(true);
+    expect(sent).toHaveLength(0);
+  });
   it('uses the immutable Google subject after a Google email change without overwriting local profile', async () => {
     const { result } = await signup();
     const changed = await exchange(
-      await begin('subject-one', 'changed@gmail.com'),
+      await begin('subject-one', 'changed@example.com'),
     );
     expect(changed.status).toBe(200);
     expect(changed.body.data.user).toEqual(result.body.data.user);

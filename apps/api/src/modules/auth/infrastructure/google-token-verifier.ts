@@ -44,6 +44,9 @@ export class JoseGoogleTokenVerifier implements GoogleTokenVerifier {
         subject: payload.sub,
         email: normalizeEmail(payload.email),
         name: typeof payload.name === 'string' ? payload.name.trim() : '',
+        emailAuthoritative:
+          normalizeEmail(payload.email).endsWith('@gmail.com') ||
+          (typeof payload.hd === 'string' && payload.hd.trim().length > 0),
       };
     } catch (error: unknown) {
       if (error instanceof TypeError || error instanceof errors.JWKSTimeout)

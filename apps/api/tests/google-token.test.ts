@@ -41,6 +41,7 @@ describe('Google identity verification', () => {
       subject: 'google-subject',
       email: 'person@gmail.com',
       name: 'Google Name',
+      emailAuthoritative: true,
     });
     expect(
       (
@@ -51,6 +52,22 @@ describe('Google identity verification', () => {
         )
       ).subject,
     ).toBe('google-subject');
+  });
+  it('only treats Gmail and a signed Workspace domain as authoritative for email linking', async () => {
+    for (const [email, hd, authoritative] of [
+      ['person@example.com', undefined, false],
+      ['person@example.com', 'example.com', true],
+      ['person@example.com', '', false],
+      ['person@example.com', true, false],
+      ['person@gmail.com.evil.example', undefined, false],
+    ] as const) {
+      const result = await verifier.verify(
+        await token({ email, hd }),
+        nonce,
+        now,
+      );
+      expect(result.emailAuthoritative).toBe(authoritative);
+    }
   });
   it.each([
     { aud: 'another-client.apps.googleusercontent.com' },

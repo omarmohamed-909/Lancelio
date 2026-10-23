@@ -17,7 +17,6 @@ const schema = z.strictObject({
   credential: z.string().min(1).max(16384),
   name: z.string().max(500).optional(),
   workspaceName: z.string().max(500).optional(),
-  linkPassword: z.string().min(1).max(512).optional(),
 });
 export function createGoogleAuthRouter(
   webOrigin: string,
@@ -113,9 +112,6 @@ export function createGoogleAuthRouter(
       ...(data.name !== undefined ? { name: data.name } : {}),
       ...(data.workspaceName !== undefined
         ? { workspaceName: data.workspaceName }
-        : {}),
-      ...(data.linkPassword !== undefined
-        ? { linkPassword: data.linkPassword }
         : {}),
     });
     if (result.kind !== 'authenticated') {

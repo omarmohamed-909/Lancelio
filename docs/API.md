@@ -12,7 +12,7 @@ Replies contain `plan`, nullable `message`, `engine`, `degraded`, nullable `asOf
 
 ## Register
 
-Optional Google authentication uses `GET /api/v1/auth/google/config`, `POST /api/v1/auth/google/challenge` (empty JSON body), and `POST /api/v1/auth/google` (`credential`, optional `name`, `workspaceName`, `linkPassword`). Both POST routes require the exact trusted Origin and share a 20-request/15-minute/IP limit. An ID token must match the browser-bound, single-use nonce. Exchange results are `onboarding-required`, `link-required`, or `authenticated`; only the last sets a refresh cookie and returns the usual session credentials. Missing configuration reports `enabled: false`; exchanges return `GOOGLE_UNAVAILABLE` (503). See [Google setup and account behavior](GOOGLE_SIGN_IN.md).
+Optional Google authentication uses `GET /api/v1/auth/google/config`, `POST /api/v1/auth/google/challenge` (empty JSON body), and `POST /api/v1/auth/google` (`credential`, optional `name`, `workspaceName`). Both POST routes require the exact trusted Origin and share a 20-request/15-minute/IP limit. An ID token must match the browser-bound, single-use nonce. Exchange results are `onboarding-required` or `authenticated`; only the last sets a refresh cookie and returns the usual session credentials. Missing configuration reports `enabled: false`; exchanges return `GOOGLE_UNAVAILABLE` (503). See [Google setup and account behavior](GOOGLE_SIGN_IN.md).
 
 `POST /api/v1/auth/register` with `Content-Type: application/json`.
 

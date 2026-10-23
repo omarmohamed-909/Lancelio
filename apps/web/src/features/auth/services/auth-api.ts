@@ -22,13 +22,11 @@ const googleResultSchema = z.discriminatedUnion('kind', [
     email: z.string(),
     name: z.string(),
   }),
-  z.object({ kind: z.literal('link-required'), email: z.string() }),
 ]);
 export interface GoogleSignInData {
   credential: string;
   name?: string;
   workspaceName?: string;
-  linkPassword?: string;
 }
 export type Identity = z.infer<typeof identitySchema>;
 export type Credentials = z.infer<typeof credentialsSchema>;
@@ -89,6 +87,10 @@ export function errorMessage(error: unknown): string {
       return 'اختيار حساب Google انتهت صلاحيته. اختار حسابك من جديد.';
     case 'GOOGLE_ACCOUNT_CONFLICT':
       return 'تعذّر ربط حساب Google. استخدم طريقة الدخول المرتبطة بحسابك، أو اختار حسابك من جديد.';
+    case 'GOOGLE_EMAIL_NOT_AUTHORITATIVE':
+      return 'Google مش بيؤكد ملكية البريد ده حاليًا. استخدم طريقة الدخول الأصلية أو حساب Gmail أو Google Workspace.';
+    case 'PASSWORD_SIGN_IN_CONFIRMATION_REQUIRED':
+      return 'كمّل باستخدام Google. لتفعيل الدخول بكلمة المرور، عيّن كلمة مرور جديدة من إعدادات الأمان أو استرجاع البريد.';
     case 'GOOGLE_UNAVAILABLE':
       return 'الدخول بحساب Google مش متاح دلوقتي. تقدر تستخدم البريد وكلمة المرور.';
     case 'PASSWORD_NOT_SET':

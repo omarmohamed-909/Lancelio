@@ -6,6 +6,11 @@ const userSchema = new Schema(
     name: { type: String, required: true },
     email: { type: String, required: true },
     passwordHash: { type: String, default: null, select: false },
+    passwordLoginNeedsVerification: {
+      type: Boolean,
+      default: false,
+      select: false,
+    },
     googleSubject: { type: String, default: null, select: false },
     status: {
       type: String,

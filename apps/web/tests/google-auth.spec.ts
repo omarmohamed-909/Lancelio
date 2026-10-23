@@ -188,7 +188,7 @@ test('Google registration completes onboarding once and persists a real session 
   ).not.toMatch(/eyJ|existing secure/);
 });
 
-test('Google linking proves the existing password and preserves the original account and workspace', async ({
+test('Google signs straight into the existing account without a password prompt and preserves its workspace', async ({
   page,
 }) => {
   const local = await register.execute({
@@ -202,20 +202,12 @@ test('Google linking proves the existing password and preserves the original acc
   await page
     .getByRole('button', { name: 'المتابعة باستخدام Google', exact: true })
     .click();
-  await expect(
-    page.getByRole('heading', { name: 'اربط حسابك بـGoogle' }),
-  ).toBeVisible();
-  await expect(page.locator('#google-link-password')).toBeFocused();
-  await page.locator('#google-link-password').fill('incorrect');
-  await page.getByRole('button', { name: 'ربط الحساب والمتابعة' }).click();
-  await expect(page.locator('.google-auth [role="alert"]')).toContainText(
-    'البريد الإلكتروني أو كلمة المرور غير صحيحة.',
-  );
-  await expect(page.locator('#google-link-password')).toHaveValue('');
-  await page.locator('#google-link-password').fill(password);
-  await page.getByRole('button', { name: 'ربط الحساب والمتابعة' }).click();
   await expect(page).toHaveURL(/\/dashboard$/u);
-  const user = await models.User.findOne().select('+googleSubject').orFail();
+  await expect(page.locator('#google-link-password')).toHaveCount(0);
+  const user = await models.User.findOne()
+    .select('+googleSubject +passwordLoginNeedsVerification')
+    .orFail();
+  expect(user.passwordLoginNeedsVerification).toBe(true);
   expect(user.id).toBe(local.user.id);
   expect(user.name).toBe('Original User');
   expect(user.googleSubject).toBe('browser-google-subject');

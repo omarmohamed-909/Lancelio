@@ -5,7 +5,7 @@ import { createGoogleChallengeModel } from '../modules/auth/infrastructure/googl
 import { MongoGoogleAccountStore } from '../modules/auth/infrastructure/mongo-google-account-store.js';
 import { MongoSessionStore } from '../modules/auth/infrastructure/mongo-session-store.js';
 import { JoseSessionTokens } from '../modules/auth/infrastructure/jose-session-tokens.js';
-import { Argon2PasswordVerifier } from '../modules/auth/infrastructure/argon2-password-verifier.js';
+import { createRecoveryModels } from '../modules/auth/infrastructure/recovery-models.js';
 import type { RegistrationModels } from '../modules/auth/infrastructure/registration-models.js';
 import type { SessionModel } from '../modules/auth/infrastructure/session-model.js';
 export async function createGoogleAuthentication(
@@ -19,7 +19,14 @@ export async function createGoogleAuthentication(
   const challenges = createGoogleChallengeModel(models.User.db);
   await challenges.createCollection();
   await challenges.createIndexes();
-  const accounts = new MongoGoogleAccountStore(models, challenges);
+  const recovery = createRecoveryModels(models.User.db);
+  await recovery.Job.createCollection();
+  const accounts = new MongoGoogleAccountStore(
+    models,
+    challenges,
+    sessions,
+    recovery.Job,
+  );
   return {
     clientId,
     secureCookies,
@@ -29,7 +36,6 @@ export async function createGoogleAuthentication(
       verifier,
       accounts,
       new MongoSessionStore(models, sessions),
-      await Argon2PasswordVerifier.create(),
       new JoseSessionTokens(signingSecret),
       { now: () => new Date() },
     ),

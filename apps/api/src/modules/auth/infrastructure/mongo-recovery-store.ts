@@ -195,7 +195,11 @@ export class MongoRecoveryStore implements RecoveryStore {
           passwordHash: job.credentialHash ?? null,
         },
         {
-          $set: { passwordHash, passwordChangedAt: now },
+          $set: {
+            passwordHash,
+            passwordChangedAt: now,
+            passwordLoginNeedsVerification: false,
+          },
           $inc: { authFence: 1 },
         },
         { session: transaction },

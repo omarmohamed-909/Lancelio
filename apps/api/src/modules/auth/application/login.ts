@@ -34,6 +34,11 @@ export class Login {
         'Email or password is incorrect',
       );
     }
+    if (credentials.passwordLoginNeedsVerification)
+      throw new ApplicationError(
+        'PASSWORD_SIGN_IN_CONFIRMATION_REQUIRED',
+        'Continue with Google, then set a new password or use email recovery',
+      );
     const identity = await this.store.findIdentity(
       credentials.userId,
       validated.workspaceId,

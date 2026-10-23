@@ -19,13 +19,15 @@ export class MongoSessionStore implements SessionStore {
 
   async findCredentials(email: string) {
     const user = await this.models.User.findOne({ email })
-      .select('+passwordHash')
+      .select('+passwordHash +passwordLoginNeedsVerification')
       .lean();
     return user
       ? {
           userId: user._id.toHexString(),
           passwordHash: user.passwordHash ?? null,
           status: user.status,
+          passwordLoginNeedsVerification:
+            user.passwordLoginNeedsVerification ?? false,
         }
       : null;
   }
@@ -71,6 +73,7 @@ export class MongoSessionStore implements SessionStore {
   async createSession(
     session: NewSession,
     expectedPasswordHash: string | null,
+    method: 'password' | 'google' = 'password',
   ) {
     await this.sessions.db.transaction(
       async (transaction) => {
@@ -79,6 +82,9 @@ export class MongoSessionStore implements SessionStore {
             _id: session.userId,
             status: 'active',
             passwordHash: expectedPasswordHash,
+            ...(method === 'password'
+              ? { passwordLoginNeedsVerification: { $ne: true } }
+              : {}),
           },
           { $inc: { authFence: 1 } },
           { session: transaction },

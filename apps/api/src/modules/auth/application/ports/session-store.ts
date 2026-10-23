@@ -7,6 +7,7 @@ export interface LoginCredentials {
   readonly userId: string;
   readonly passwordHash: string | null;
   readonly status: string;
+  readonly passwordLoginNeedsVerification?: boolean;
 }
 
 export interface NewSession extends SessionClaims {
@@ -23,6 +24,7 @@ export interface SessionStore {
   createSession(
     session: NewSession,
     expectedPasswordHash: string | null,
+    method?: 'password' | 'google',
   ): Promise<void>;
   isSessionActive(claims: SessionClaims, now: Date): Promise<boolean>;
 }
