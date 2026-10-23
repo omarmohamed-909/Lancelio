@@ -24,7 +24,7 @@ export class MongoSessionStore implements SessionStore {
     return user
       ? {
           userId: user._id.toHexString(),
-          passwordHash: user.passwordHash,
+          passwordHash: user.passwordHash ?? null,
           status: user.status,
         }
       : null;
@@ -68,7 +68,10 @@ export class MongoSessionStore implements SessionStore {
     };
   }
 
-  async createSession(session: NewSession, expectedPasswordHash: string) {
+  async createSession(
+    session: NewSession,
+    expectedPasswordHash: string | null,
+  ) {
     await this.sessions.db.transaction(
       async (transaction) => {
         const user = await this.models.User.updateOne(

@@ -22,7 +22,12 @@ export class ChangePassword {
         'Too many password change attempts',
       );
     const hash = await this.store.findHash(scope.userId);
-    if (!hash) throw unauthenticated();
+    if (hash === null) throw unauthenticated();
+    if (hash === '')
+      throw new ApplicationError(
+        'PASSWORD_NOT_SET',
+        'Set a password using email recovery first',
+      );
     if (!(await this.verifier.verify(hash, validated.currentPassword)))
       throw new ApplicationError(
         'CURRENT_PASSWORD_INCORRECT',

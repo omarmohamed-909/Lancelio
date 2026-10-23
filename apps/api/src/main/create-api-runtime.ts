@@ -32,6 +32,7 @@ import { createApp } from './create-app.js';
 import { readEnvironment, assistantConfiguration } from './config.js';
 import { checkDatabaseReadiness, connectDatabase } from './database.js';
 import { createAuthentication } from './create-authentication.js';
+import { createGoogleAuthentication } from './create-google-authentication.js';
 import { createProfile } from './create-profile.js';
 import { createWorkspaceSettings } from './create-workspace-settings.js';
 import { createSessionModel } from '../modules/auth/infrastructure/session-model.js';
@@ -134,6 +135,17 @@ export async function createApiRuntime(
       assistantConfiguration(environment),
     );
     const app = createApp(environment.WEB_ORIGIN, {
+      ...(environment.GOOGLE_CLIENT_ID
+        ? {
+            google: await createGoogleAuthentication(
+              models,
+              sessionModel,
+              environment.JWT_ACCESS_SECRET,
+              environment.GOOGLE_CLIENT_ID,
+              environment.NODE_ENV === 'production',
+            ),
+          }
+        : {}),
       assistant,
       passwordChange: (
         await createPasswordChange(models, sessionModel, recovery.models.Job)

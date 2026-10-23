@@ -5,7 +5,7 @@ import type {
 
 export interface LoginCredentials {
   readonly userId: string;
-  readonly passwordHash: string;
+  readonly passwordHash: string | null;
   readonly status: string;
 }
 
@@ -22,7 +22,7 @@ export interface SessionStore {
   ): Promise<AuthenticatedIdentity | null>;
   createSession(
     session: NewSession,
-    expectedPasswordHash: string,
+    expectedPasswordHash: string | null,
   ): Promise<void>;
   isSessionActive(claims: SessionClaims, now: Date): Promise<boolean>;
 }

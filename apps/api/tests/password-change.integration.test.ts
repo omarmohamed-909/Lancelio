@@ -480,7 +480,9 @@ describe('Signed-in password change: atomic credentials and revocation', () => {
         .select('+passwordHash')
         .lean())!.passwordHash;
       expect(
-        await (await Argon2PasswordVerifier.create()).verify(hash, newPassword),
+        await (
+          await Argon2PasswordVerifier.create()
+        ).verify(hash ?? null, newPassword),
       ).toBe(false);
     },
   );

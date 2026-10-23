@@ -46,6 +46,8 @@ import helmet from 'helmet';
 import type { RegisterAccount } from '../modules/auth/application/register-account.js';
 import { createRegistrationRouter } from '../modules/auth/presentation/registration.routes.js';
 import { createSessionRouter } from '../modules/auth/presentation/session.routes.js';
+import { createGoogleAuthRouter } from '../modules/auth/presentation/google-auth.routes.js';
+import type { GoogleAuthEndpoints } from '../modules/auth/presentation/google-auth.routes.js';
 import type { SessionEndpoints } from '../modules/auth/presentation/session.routes.js';
 import { createHealthRouter } from '../modules/health/presentation/health.routes.js';
 import { errorHandler } from '../shared/presentation/http/error-handler.js';
@@ -64,6 +66,7 @@ export function createApp(
     passwordRecovery?: PasswordRecovery;
     passwordChange?: ChangePassword;
     sessions?: SessionEndpoints;
+    google?: GoogleAuthEndpoints;
     portal?: ShareClientPortal;
     notifications?: ManageNotifications;
     dashboard?: ReadWorkspaceOverview;
@@ -104,6 +107,10 @@ export function createApp(
   });
   app.use(express.json({ limit: '100kb' }));
   app.use('/api/v1/health', createHealthRouter(dependencies.checkReadiness));
+  app.use(
+    '/api/v1/auth',
+    createGoogleAuthRouter(webOrigin, dependencies.google),
+  );
   if (dependencies.registerAccount)
     app.use(
       '/api/v1/auth',

@@ -3,6 +3,10 @@ import { ApplicationError } from '../../domain/application-error.js';
 import type { ApplicationErrorCode } from '../../domain/application-error.js';
 
 const applicationStatuses: Record<ApplicationErrorCode, number> = {
+  GOOGLE_INVALID_CREDENTIALS: 401,
+  GOOGLE_UNAVAILABLE: 503,
+  GOOGLE_ACCOUNT_CONFLICT: 409,
+  PASSWORD_NOT_SET: 422,
   CURRENT_PASSWORD_INCORRECT: 422,
   RATE_LIMITED: 429,
   PROFILE_CONFLICT: 409,

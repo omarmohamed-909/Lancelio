@@ -36,7 +36,8 @@ export class MongoPasswordChangeStore implements PasswordChangeStore {
     })
       .select('+passwordHash')
       .lean();
-    return user?.passwordHash ?? null;
+    // null means the active account disappeared; an empty hash means Google-only.
+    return user ? (user.passwordHash ?? '') : null;
   }
   async change(
     scope: SessionClaims,

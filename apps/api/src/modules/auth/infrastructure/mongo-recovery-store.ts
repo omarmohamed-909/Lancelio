@@ -106,13 +106,13 @@ export class MongoRecoveryStore implements RecoveryStore {
         .session(transaction)
         .lean();
       if (!current) return false;
-      if (current.user && current.credentialHash)
+      if (current.user)
         return (
           (await this.users
             .exists({
               _id: current.user,
               status: 'active',
-              passwordHash: current.credentialHash,
+              passwordHash: current.credentialHash ?? null,
             })
             .session(transaction)) !== null
         );
@@ -135,7 +135,7 @@ export class MongoRecoveryStore implements RecoveryStore {
       );
       await this.models.Job.updateOne(
         { _id: job.id, lease: job.lease },
-        { $set: { user: user._id, credentialHash: user.passwordHash } },
+        { $set: { user: user._id, credentialHash: user.passwordHash ?? null } },
         { session: transaction },
       );
       return true;
@@ -168,11 +168,11 @@ export class MongoRecoveryStore implements RecoveryStore {
     })
       .select('+credentialHash')
       .lean();
-    return job?.user && job.credentialHash
+    return job?.user
       ? (await this.users.exists({
           _id: job.user,
           status: 'active',
-          passwordHash: job.credentialHash,
+          passwordHash: job.credentialHash ?? null,
         })) !== null
       : false;
   }
@@ -187,9 +187,13 @@ export class MongoRecoveryStore implements RecoveryStore {
         .select('+credentialHash')
         .session(transaction)
         .lean();
-      if (!job?.user || !job.credentialHash) return false;
+      if (!job?.user) return false;
       const updated = await this.users.updateOne(
-        { _id: job.user, status: 'active', passwordHash: job.credentialHash },
+        {
+          _id: job.user,
+          status: 'active',
+          passwordHash: job.credentialHash ?? null,
+        },
         {
           $set: { passwordHash, passwordChangedAt: now },
           $inc: { authFence: 1 },

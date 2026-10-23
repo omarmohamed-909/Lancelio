@@ -4,6 +4,7 @@ import type {
   Identity,
   LoginData,
   RegistrationData,
+  GoogleSignInData,
 } from './auth-api';
 
 export type SessionSnapshot =
@@ -189,6 +190,19 @@ export class SessionManager {
       const generation = ++this.generation;
       this.accept(await authApi.login(input), generation);
       this.channel?.postMessage('signed-in');
+    });
+  }
+
+  async googleSignIn(input: GoogleSignInData) {
+    return this.exclusive(async () => {
+      const generation = ++this.generation;
+      const result = await authApi.googleSignIn(input);
+      if (result.kind === 'authenticated') {
+        this.accept(result, generation);
+        this.channel?.postMessage('signed-in');
+        return { kind: 'authenticated' as const };
+      }
+      return result;
     });
   }
 

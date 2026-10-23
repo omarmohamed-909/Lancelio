@@ -170,6 +170,8 @@ The deployment topology is **Vercel frontend + Vercel Express API**. An optional
 
 ## Explore the docs
 
+Google sign-in is prepared as an optional integration, with onboarding and password-confirmed account linking. Enable it with the API's `GOOGLE_CLIENT_ID`: [Google sign-in setup](docs/GOOGLE_SIGN_IN.md).
+
 | Guide                                                                                                                        | Start here for                                                         |
 | ---------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
 | [Development](docs/DEVELOPMENT.md)                                                                                           | Environment, local tools, test setup and common issues.                |

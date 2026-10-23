@@ -9,6 +9,14 @@ const environmentSchema = z
     WEB_ORIGIN: z.url().default('http://localhost:3000'),
     MONGODB_URI: z.string().regex(/^mongodb(?:\+srv)?:\/\//u),
     JWT_ACCESS_SECRET: z.string().min(32),
+    GOOGLE_CLIENT_ID: z.preprocess(
+      (value) => (value === '' ? undefined : value),
+      z
+        .string()
+        .trim()
+        .regex(/^[A-Za-z0-9_-]+\.apps\.googleusercontent\.com$/u)
+        .optional(),
+    ),
     EMAIL_PROVIDER: z.enum(['disabled', 'resend']).default('disabled'),
     RESEND_API_KEY: z.string().optional(),
     EMAIL_FROM: z.string().optional(),

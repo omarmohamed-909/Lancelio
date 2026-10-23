@@ -18,6 +18,7 @@ import type { LoginValues, RegisterValues } from '../schemas/forms';
 import { errorMessage } from '../services/auth-api';
 import { useSession } from './session-provider';
 import { useHydrated } from '../../../shared/hooks/use-hydrated';
+import { GoogleSignIn } from './google-sign-in';
 
 export function PasswordToggle({
   visible,
@@ -54,6 +55,8 @@ export function LoginForm() {
   const router = useRouter();
   const [visible, setVisible] = useState(false);
   const [message, setMessage] = useState('');
+  const [googleBusy, setGoogleBusy] = useState(false);
+  const [googleFlow, setGoogleFlow] = useState(false);
   const submitting = useRef(false);
   const {
     register,
@@ -82,6 +85,11 @@ export function LoginForm() {
         <span>.</span>
       </h1>
       <p className="form-subtitle">{t('سجّل دخولك وكمّل من آخر خطوة.')}</p>
+      <GoogleSignIn
+        disabled={!hydrated || isSubmitting}
+        onBusyChange={setGoogleBusy}
+        onFlowChange={setGoogleFlow}
+      />
       {snapshot.status === 'anonymous' && snapshot.notice && (
         <p className="form-notice" role="status">
           {snapshot.notice === 'password-changed'
@@ -94,6 +102,7 @@ export function LoginForm() {
         </p>
       )}
       <form
+        hidden={googleFlow}
         onSubmit={(event) => {
           if (submitting.current) {
             event.preventDefault();
@@ -106,7 +115,7 @@ export function LoginForm() {
         }}
         noValidate
       >
-        <fieldset disabled={!hydrated || isSubmitting}>
+        <fieldset disabled={!hydrated || isSubmitting || googleBusy}>
           <div className="field">
             <label htmlFor="email">{t('البريد الإلكتروني')}</label>
             <input
@@ -165,7 +174,7 @@ export function LoginForm() {
           </button>
         </fieldset>
       </form>
-      <p className="recovery-link">
+      <p className="recovery-link" hidden={googleFlow}>
         <Link href="/forgot-password">{t('نسيت كلمة المرور؟')}</Link>
       </p>
       <p className="form-switch">
@@ -186,6 +195,8 @@ export function RegisterForm() {
   const router = useRouter();
   const [visible, setVisible] = useState(false);
   const [message, setMessage] = useState('');
+  const [googleBusy, setGoogleBusy] = useState(false);
+  const [googleFlow, setGoogleFlow] = useState(false);
   const submitting = useRef(false);
   const {
     register,
@@ -225,7 +236,13 @@ export function RegisterForm() {
       <p className="form-subtitle">
         {t('حساب واحد، وبداية جديدة لشغلك الحر.')}
       </p>
+      <GoogleSignIn
+        disabled={!hydrated || isSubmitting}
+        onBusyChange={setGoogleBusy}
+        onFlowChange={setGoogleFlow}
+      />
       <form
+        hidden={googleFlow}
         onSubmit={(event) => {
           if (submitting.current) {
             event.preventDefault();
@@ -238,7 +255,7 @@ export function RegisterForm() {
         }}
         noValidate
       >
-        <fieldset disabled={!hydrated || isSubmitting}>
+        <fieldset disabled={!hydrated || isSubmitting || googleBusy}>
           <div className="registration-details">
             <div className="field">
               <label htmlFor="name">{t('اسمك')}</label>

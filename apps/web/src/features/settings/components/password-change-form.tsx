@@ -1,5 +1,6 @@
 'use client';
 import { useI18n } from '../../../i18n/language-provider';
+import Link from 'next/link';
 
 import { useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
@@ -137,6 +138,12 @@ export function PasswordChangeForm() {
             <p>{t('غيّر كلمة مرورك بخطوتين واضحتين.')}</p>
           </div>
         </div>
+        <p className="security-intro">
+          {t(
+            'لو بتدخل بحساب Google ولسه معندكش كلمة مرور، تقدر تنشئها بعد تأكيد بريدك من صفحة استرجاع كلمة المرور، لما خدمة البريد تكون متاحة.',
+          )}{' '}
+          <Link href="/forgot-password">{t('استرجاع كلمة المرور')}</Link>
+        </p>
         <form ref={form} noValidate onSubmit={review}>
           <p className="security-intro" id="password-policy">
             {t(

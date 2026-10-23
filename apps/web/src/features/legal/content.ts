@@ -3,7 +3,7 @@ import type { Locale } from '../../i18n/locale';
 export const legalOperator = {
   name: 'عمر محمد',
   email: 'omar.m.ombark@gmail.com',
-  updated: '2026-10-23',
+  updated: '2026-10-24',
 } as const;
 
 export const legalDocumentIds = ['privacy', 'terms', 'cookies'] as const;
@@ -34,6 +34,7 @@ const providerSources = [
     href: 'https://www.mongodb.com/legal/privacy/privacy-policy',
   },
   { label: 'Google Gemini', href: 'https://ai.google.dev/gemini-api/terms' },
+  { label: 'Google', href: 'https://policies.google.com/privacy' },
   { label: 'OpenAI', href: 'https://openai.com/enterprise-privacy/' },
 ];
 
@@ -61,6 +62,7 @@ export const legalContent: Record<
           title: 'البيانات التي نتعامل معها',
           bullets: [
             'بيانات الحساب، مثل الاسم والبريد الإلكتروني وبيانات مساحة العمل. تُحفظ كلمات المرور في صورة تجزئة، ولا تُعرض كنص قابل للقراءة.',
+            'عند إتاحة الدخول بحساب Google واختيارك استخدامه، نتلقى معرّف حساب Google والبريد الإلكتروني وحالة التحقق منه والاسم. نستخدم المعرّف لربط الدخول بحساب Lancelio؛ ولا نطلب الوصول لرسائل Gmail أو جهات الاتصال. قد يحمّل المتصفح أدوات Google على صفحات الدخول عند تفعيل الميزة.',
             'ما تضيفه إلى مساحتك: بيانات العملاء، وعروض الأسعار، والمشاريع والمهام، والفواتير والدفعات المسجّلة.',
             'الرسائل التي تكتبها للمساعد وسياق المحادثة الذي ترسله معه، عند استخدام هذه الميزة.',
             'بيانات تقنية مرتبطة بالطلبات والجلسات والأمان، وقد تشمل عنوان الشبكة ومعلومات المتصفح وسجلات الأخطاء لدى خدمات الاستضافة.',
@@ -218,6 +220,11 @@ export const legalContent: Record<
                 'حتى انتهاء الجلسة أو إلغائها أو حذف ملفات الموقع؛ ويمكن تجديده أثناء الاستخدام.',
               ],
               [
+                'تأمين دخول Google: __Host-lancelio_google أو lancelio_google',
+                'ربط طلب الدخول بالمتصفح ومنع إعادة استخدامه، عند تفعيل Google. ملف HttpOnly.',
+                '١٠ دقائق، أو حتى اكتمال الدخول.',
+              ],
+              [
                 'لغة الموقع: lancelio_language',
                 'تذكّر اختيارك للعربية أو الإنجليزية. تبدأ الواجهة باللغة المدعومة من تفضيلات جهازك إذا لم تختر لغة.',
                 'عام من وقت حفظ الاختيار، أو حتى حذفه.',
@@ -291,6 +298,7 @@ export const legalContent: Record<
           title: 'Information we handle',
           bullets: [
             'Account details such as your name, email address, and workspace information. Passwords are stored as hashes rather than readable text.',
+            'When Google sign-in is available and you choose it, we receive your Google account identifier, email address, verification status, and name. The identifier links sign-in to your Lancelio account; we do not request access to Gmail messages or contacts. Your browser may load Google tools on sign-in pages when the feature is enabled.',
             'Information you add to your workspace: clients, proposals, projects, tasks, invoices, and recorded payments.',
             'Messages you send to the assistant and the conversation context submitted with them when you use that feature.',
             'Technical information associated with requests, sessions, and security, which may include network addresses, browser information, and error logs held by hosting services.',
@@ -446,6 +454,11 @@ export const legalContent: Record<
                 'Sign-in: __Host-lancelio_refresh or lancelio_refresh',
                 'Restore and verify the account session. This HttpOnly cookie is not directly readable by page scripts.',
                 'Until session expiry, revocation, or deletion of site cookies; it may be renewed during use.',
+              ],
+              [
+                'Google sign-in protection: __Host-lancelio_google or lancelio_google',
+                'Bind sign-in to your browser and prevent reuse when Google is enabled. An HttpOnly cookie.',
+                '10 minutes, or until sign-in completes.',
               ],
               [
                 'Site language: lancelio_language',

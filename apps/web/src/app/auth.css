@@ -500,3 +500,79 @@
   align-items: center;
   min-height: 44px;
 }
+.google-auth {
+  margin-block: 0 20px;
+}
+.google-button-slot {
+  min-height: 44px;
+  display: flex;
+  justify-content: center;
+}
+.google-button-slot[inert] {
+  opacity: 0.55;
+  pointer-events: none;
+}
+.google-auth-status {
+  text-align: center;
+  color: var(--muted);
+  font-size: 13px;
+  margin-block: 10px;
+}
+.google-auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-block: 24px 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+.google-auth-divider::before,
+.google-auth-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--line);
+}
+.google-complete {
+  padding: 20px;
+  background: var(--surface-soft);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+}
+.google-complete h2 {
+  font-size: 19px;
+  margin: 0 0 8px;
+}
+.google-auth-email {
+  color: var(--muted);
+  overflow-wrap: anywhere;
+  text-align: start;
+  font-size: 13px;
+  margin-bottom: 20px;
+}
+.google-complete .field-help {
+  margin-bottom: 16px;
+}
+.google-complete a {
+  font-size: 13px;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.google-auth-reset {
+  display: block;
+  margin: 14px auto 0;
+  padding: 8px;
+  background: none;
+  border: 0;
+  color: var(--green);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.google-auth-reset:focus-visible {
+  outline: 2px solid var(--green);
+  outline-offset: 3px;
+  border-radius: 4px;
+}

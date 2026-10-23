@@ -5,7 +5,8 @@ const userSchema = new Schema(
   {
     name: { type: String, required: true },
     email: { type: String, required: true },
-    passwordHash: { type: String, required: true, select: false },
+    passwordHash: { type: String, default: null, select: false },
+    googleSubject: { type: String, default: null, select: false },
     status: {
       type: String,
       enum: ['active', 'suspended', 'deleted'],
@@ -20,6 +21,17 @@ const userSchema = new Schema(
   { timestamps: true, strict: 'throw' },
 );
 userSchema.index({ email: 1 }, { unique: true });
+userSchema.pre('validate', function () {
+  if (this.isNew && !this.passwordHash && !this.googleSubject)
+    this.invalidate('passwordHash', 'An authentication method is required');
+});
+userSchema.index(
+  { googleSubject: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { googleSubject: { $type: 'string' } },
+  },
+);
 
 const workspaceSchema = new Schema(
   {

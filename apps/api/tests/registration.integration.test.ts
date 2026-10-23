@@ -95,7 +95,9 @@ describe('Registration against a real MongoDB replica set', () => {
     const user = await models.User.findOne().select('+passwordHash').orFail();
     const workspace = await models.Workspace.findOne().orFail();
     const membership = await models.Membership.findOne().orFail();
-    expect(user.passwordHash.startsWith('$argon2id$')).toBe(true);
+    expect(user.passwordHash?.startsWith('$argon2id$')).toBe(true);
+    if (!user.passwordHash)
+      throw new Error('Password registration must store a hash');
     expect(await verify(user.passwordHash, input.password)).toBe(true);
     expect(
       (await models.User.findById(user._id).lean())?.passwordHash,

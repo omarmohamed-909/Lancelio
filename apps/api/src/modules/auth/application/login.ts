@@ -23,7 +23,12 @@ export class Login {
       credentials?.passwordHash ?? null,
       validated.password,
     );
-    if (!credentials || !verified || credentials.status !== 'active') {
+    if (
+      !credentials ||
+      !credentials.passwordHash ||
+      !verified ||
+      credentials.status !== 'active'
+    ) {
       throw new ApplicationError(
         'INVALID_CREDENTIALS',
         'Email or password is incorrect',
