@@ -12,7 +12,7 @@ Replies contain `plan`, nullable `message`, `engine`, `degraded`, nullable `asOf
 
 ## Register
 
-Optional Google authentication uses `GET /api/v1/auth/google/config`, `POST /api/v1/auth/google/challenge` (empty JSON body), and `POST /api/v1/auth/google` (`credential`, optional `name`, `workspaceName`). Both POST routes require the exact trusted Origin and share a 20-request/15-minute/IP limit. An ID token must match the browser-bound, single-use nonce. Exchange results are `onboarding-required` or `authenticated`; only the last sets a refresh cookie and returns the usual session credentials. Missing configuration reports `enabled: false`; exchanges return `GOOGLE_UNAVAILABLE` (503). See [Google setup and account behavior](GOOGLE_SIGN_IN.md).
+Optional Google authentication uses `GET /api/v1/auth/google/config`, `POST /api/v1/auth/google/challenge` (empty JSON body), and `POST /api/v1/auth/google` (`credential`, optional `name`, `workspaceName`). Both POST routes require the exact trusted Origin. Challenge preparation allows 60 requests/15 minutes/IP; token exchange has a separate 20-request/15-minute/IP budget, so page reloads do not consume sign-in attempts. An ID token must match the browser-bound, single-use nonce. Exchange results are `onboarding-required` or `authenticated`; only the last sets a refresh cookie and returns the usual session credentials. Missing configuration reports `enabled: false`; exchanges return `GOOGLE_UNAVAILABLE` (503). See [Google setup and account behavior](GOOGLE_SIGN_IN.md).
 
 `POST /api/v1/auth/register` with `Content-Type: application/json`.
 
@@ -85,6 +85,8 @@ No selection chooses the earliest membership. Unknown fields are rejected.
 Email is trimmed and lowercased. Password is not altered. Login accepts 1–128 password code points
 to verify existing credentials; registration enforces its stronger minimum independently.
 
+Successful password logins do not consume the failure allowance. Failed login requests have two limits per 15 minutes: ten per normalized mailbox/IP pair and sixty total per IP across mailboxes. This permits multiple accounts on one device or shared network while limiting password guessing and mailbox rotation. Invalid requests also count; blocked responses include `Retry-After`. Registration retains its separate twenty-request budget. Limits use the current process-local middleware store; they are not a durable, deployment-wide abuse quota.
+
 ### 200 OK
 
 ```json
@@ -111,7 +113,7 @@ development uses `lancelio_refresh`. The raw refresh secret is not returned in J
 | 403  | WORKSPACE_ACCESS_DENIED | Password verified but no allowed workspace membership                 |
 | 403  | UNTRUSTED_ORIGIN        | Absent or mismatched browser Origin                                   |
 | 422  | VALIDATION_ERROR        | Invalid body shape, injected fields, password length, or workspace ID |
-| 429  | RATE_LIMITED            | More than 10 login attempts per 15 minutes per IP                     |
+| 429  | RATE_LIMITED            | Ten mailbox/IP failures or sixty IP failures per 15 minutes           |
 
 The common 400/413/500 error contracts also apply. No cookie or successful auth response is issued on failure.
 This policy expects same-site frontend/API hosting in production; CORS alone does not make unrelated domains same-site.

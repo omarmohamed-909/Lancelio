@@ -48,7 +48,22 @@ export function createGoogleAuthRouter(
       );
     next();
   };
-  const limit = rateLimit({
+  const challengeLimit = rateLimit({
+    identifier: 'google-challenges',
+    windowMs: 15 * 60 * 1000,
+    limit: 60,
+    standardHeaders: 'draft-8',
+    legacyHeaders: false,
+    message: {
+      success: false,
+      error: {
+        code: 'RATE_LIMITED',
+        message: 'Too many Google sign-in preparations. Try again later.',
+      },
+    },
+  });
+  const exchangeLimit = rateLimit({
+    identifier: 'google-exchanges',
     windowMs: 15 * 60 * 1000,
     limit: 20,
     standardHeaders: 'draft-8',
@@ -72,7 +87,7 @@ export function createGoogleAuthRouter(
   router.post(
     '/google/challenge',
     trusted,
-    limit,
+    challengeLimit,
     async (request, response) => {
       if (!z.strictObject({}).safeParse(request.body).success)
         throw new ApplicationError('VALIDATION_ERROR', 'No fields accepted');
@@ -83,7 +98,7 @@ export function createGoogleAuthRouter(
       response.json({ success: true, data: { nonce } });
     },
   );
-  router.post('/google', trusted, limit, async (request, response) => {
+  router.post('/google', trusted, exchangeLimit, async (request, response) => {
     const parsed = schema.safeParse(request.body);
     if (!parsed.success)
       throw new ApplicationError(

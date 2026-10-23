@@ -370,6 +370,65 @@ describe('Login and authenticated workspace access', () => {
     );
   });
 
+  it('allows repeated successful sign-ins to different accounts from the same network', async () => {
+    const second = {
+      ...account,
+      email: 'second@example.com',
+      name: 'Second User',
+    };
+    const registered = await request(app)
+      .post('/api/v1/auth/register')
+      .send(second);
+    expect(registered.status).toBe(201);
+    for (let attempt = 0; attempt < 12; attempt++) {
+      const selected = attempt % 2 === 0 ? account : second;
+      const response = await login({
+        email: selected.email,
+        password: selected.password,
+      });
+      expect(response.status).toBe(200);
+      expect(response.body.data.user.email).toBe(selected.email);
+      expect(
+        (await me(response.body.data.accessToken)).body.data.user.email,
+      ).toBe(selected.email);
+    }
+    expect(await models.User.countDocuments()).toBe(2);
+    expect(await sessionModel.countDocuments()).toBe(12);
+  }, 30000);
+  it('contains repeated wrong passwords to the normalized mailbox without blocking another account', async () => {
+    const second = {
+      ...account,
+      email: 'second@example.com',
+      name: 'Second User',
+    };
+    await registerAccount.execute(second);
+    for (let attempt = 0; attempt < 10; attempt++) {
+      const email = attempt % 2 === 0 ? ' AHMED@Example.COM ' : account.email;
+      expect(
+        (await login({ email, password: 'incorrect password' })).status,
+      ).toBe(401);
+    }
+    const blocked = await login();
+    expect(blocked.status).toBe(429);
+    expect(blocked.body.error.code).toBe('RATE_LIMITED');
+    expect(Number(blocked.headers['retry-after'])).toBeGreaterThan(0);
+    expect(
+      (await login({ email: second.email, password: second.password })).status,
+    ).toBe(200);
+    expect(await sessionModel.countDocuments()).toBe(1);
+  }, 30000);
+  it('also limits failures across rotating mailboxes before expensive verification', async () => {
+    for (let attempt = 0; attempt < 60; attempt++)
+      expect(
+        (await login({ email: `attempt-${attempt}@example.com`, password: '' }))
+          .status,
+      ).toBe(422);
+    const blocked = await login();
+    expect(blocked.status).toBe(429);
+    expect(blocked.body.error.code).toBe('RATE_LIMITED');
+    expect(Number(blocked.headers['retry-after'])).toBeGreaterThan(0);
+    expect(await sessionModel.countDocuments()).toBe(0);
+  });
   it('limits login requests before password verification', async () => {
     for (let attempt = 0; attempt < 10; attempt++) {
       expect((await login({ email: account.email, password: '' })).status).toBe(

@@ -182,7 +182,7 @@ describe('Google sign-in and account integrity', () => {
     ).toBe(422);
     expect(await models.User.countDocuments()).toBe(0);
   });
-  it('uses Secure Host cookies in production and rate-limits challenge issuance', async () => {
+  it('uses Secure Host cookies and independent bounded challenge and exchange budgets', async () => {
     const production = createApp('https://lancelio.example', {
       google: { ...google, secureCookies: true },
     });
@@ -196,7 +196,7 @@ describe('Google sign-in and account integrity', () => {
     expect(cookie).toContain('HttpOnly');
     expect(cookie).toContain('SameSite=Strict');
     expect(cookie).toContain('Path=/');
-    for (let count = 1; count < 20; count++)
+    for (let count = 1; count < 60; count++)
       expect(
         (
           await request(production)
@@ -213,6 +213,51 @@ describe('Google sign-in and account integrity', () => {
           .send({})
       ).status,
     ).toBe(429);
+    for (let count = 0; count < 20; count++)
+      expect(
+        (
+          await request(production)
+            .post('/api/v1/auth/google')
+            .set('Origin', 'https://lancelio.example')
+            .send({ credential: 'invalid-test-token' })
+        ).status,
+      ).toBe(401);
+    expect(
+      (
+        await request(production)
+          .post('/api/v1/auth/google')
+          .set('Origin', 'https://lancelio.example')
+          .send({ credential: 'invalid-test-token' })
+      ).status,
+    ).toBe(429);
+  });
+  it('allows several Google accounts on one network even after repeated page preparations', async () => {
+    for (let count = 0; count < 25; count++)
+      expect(
+        (
+          await request(app)
+            .post('/api/v1/auth/google/challenge')
+            .set('Origin', origin)
+            .send({})
+        ).status,
+      ).toBe(200);
+    const identities = new Set<string>();
+    const workspaces = new Set<string>();
+    for (let count = 0; count < 3; count++) {
+      const flow = await begin(`subject-${count}`, `person-${count}@gmail.com`);
+      expect((await exchange(flow)).body.data.kind).toBe('onboarding-required');
+      const signedIn = await exchange(flow, {
+        name: `Person ${count}`,
+        workspaceName: `Studio ${count}`,
+      });
+      expect(signedIn.status).toBe(200);
+      identities.add(signedIn.body.data.user.id);
+      workspaces.add(signedIn.body.data.workspace.id);
+    }
+    expect(identities.size).toBe(3);
+    expect(workspaces.size).toBe(3);
+    expect(await models.User.countDocuments()).toBe(3);
+    expect(await sessionModel.countDocuments()).toBe(3);
   });
   it('creates a Google-only account and real session, rotates refresh, logs out and signs in again without duplicating records', async () => {
     const { result } = await signup();

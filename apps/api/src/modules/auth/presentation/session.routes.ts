@@ -1,6 +1,7 @@
 import { Router } from 'express';
+import { createHash } from 'node:crypto';
 import type { RequestHandler } from 'express';
-import { rateLimit } from 'express-rate-limit';
+import { ipKeyGenerator, rateLimit } from 'express-rate-limit';
 import { z } from 'zod';
 import { ApplicationError } from '../../../shared/domain/application-error.js';
 import type { AuthenticateSession } from '../application/authenticate-session.js';
@@ -14,6 +15,7 @@ import {
 } from './refresh-cookie.js';
 import { createAuthenticationMiddleware } from './authentication.middleware.js';
 import type { AuthenticatedHandler } from './authentication.middleware.js';
+import { normalizeEmail } from '../domain/credential-policy.js';
 
 export interface SessionEndpoints {
   login: Login;
@@ -60,8 +62,32 @@ export function createSessionRouter(
     '/login',
     trustedOrigin,
     rateLimit({
+      identifier: 'login-network-failures',
+      windowMs: 15 * 60 * 1000,
+      limit: 60,
+      skipSuccessfulRequests: true,
+      standardHeaders: 'draft-8',
+      legacyHeaders: false,
+      message: {
+        success: false,
+        error: {
+          code: 'RATE_LIMITED',
+          message: 'Too many failed login attempts. Try again later.',
+        },
+      },
+    }),
+    rateLimit({
+      identifier: 'login-account-failures',
       windowMs: 15 * 60 * 1000,
       limit: 10,
+      skipSuccessfulRequests: true,
+      keyGenerator: (request) => {
+        const body: unknown = request.body;
+        const email = z.object({ email: z.string().max(512) }).safeParse(body);
+        const mailbox = email.success ? normalizeEmail(email.data.email) : '';
+        const digest = createHash('sha256').update(mailbox).digest('hex');
+        return `${ipKeyGenerator(request.ip ?? request.socket.remoteAddress ?? 'unknown')}:${digest}`;
+      },
       standardHeaders: 'draft-8',
       legacyHeaders: false,
       message: {
