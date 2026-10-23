@@ -74,7 +74,7 @@ Do not create tests just to mirror trivial implementation details.
 AUTH-001 implements account registration with an atomic MongoDB adapter and Argon2id password hashing.
 The identity module owns the initial User, Workspace, and WorkspaceMember persistence models for this onboarding workflow.
 Future workspace features must use explicit application ports rather than importing these models across modules.
-Registration replies with an allowlisted account summary; sessions are created by the separate login endpoint.
+The public registration endpoint uses `RegisterAndSignIn`: account creation, initial owner membership and first session are one MongoDB transaction, including token preparation. It returns the normal allowlisted credentials and sets the standard refresh cookie after commit. Signing or session persistence failures roll the account back. The frontend accepts the registration credentials and opens the dashboard without a second login request. The account-only `RegisterAccount` use case remains available for internal fixtures.
 The production API connects and establishes collection/index constraints before listening, and requires a transaction-capable MongoDB deployment.
 The health endpoint remains liveness only; it does not claim database readiness or production deployment readiness.
 Password storage parameters: Argon2id, 64 MiB, 3 iterations, 1 lane, random salt from the hashing library.

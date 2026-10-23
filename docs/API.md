@@ -14,7 +14,7 @@ Replies contain `plan`, nullable `message`, `engine`, `degraded`, nullable `asOf
 
 Optional Google authentication uses `GET /api/v1/auth/google/config`, `POST /api/v1/auth/google/challenge` (empty JSON body), and `POST /api/v1/auth/google` (`credential`, optional `name`, `workspaceName`). Both POST routes require the exact trusted Origin. Challenge preparation allows 60 requests/15 minutes/IP; token exchange has a separate 20-request/15-minute/IP budget, so page reloads do not consume sign-in attempts. An ID token must match the browser-bound, single-use nonce. Exchange results are `onboarding-required` or `authenticated`; only the last sets a refresh cookie and returns the usual session credentials. Missing configuration reports `enabled: false`; exchanges return `GOOGLE_UNAVAILABLE` (503). See [Google setup and account behavior](GOOGLE_SIGN_IN.md).
 
-`POST /api/v1/auth/register` with `Content-Type: application/json`.
+`POST /api/v1/auth/register` with `Content-Type: application/json` and an exact trusted `Origin` matching `WEB_ORIGIN`.
 
 ```json
 {
@@ -42,18 +42,23 @@ Unknown fields, including role, owner, workspace IDs, plan, and passwordHash, ar
       "name": "Ahmed Studio",
       "slug": "workspace-..."
     },
-    "membership": { "id": "...", "role": "owner" }
+    "membership": { "id": "...", "role": "owner" },
+    "accessToken": "<signed JWT>",
+    "expiresIn": 900,
+    "tokenType": "Bearer"
   }
 }
 ```
 
-All three records are committed together. A failure leaves none of the records behind.
-This endpoint does not create a session, return tokens, or set auth cookies. Login is a separate endpoint.
+The user, workspace, owner membership and first authenticated session commit in one MongoDB transaction. Token-signing or session-persistence failures roll all four records back, allowing a fresh signup attempt. Duplicate registration never replaces an existing account or signs into it. Foreign or missing origins are rejected before writes.
+
+A successful response is `Cache-Control: no-store` and sets the normal HttpOnly, SameSite=Strict refresh cookie (Secure `__Host-lancelio_refresh` in production). The browser accepts these credentials directly and opens `/dashboard`; it sends no follow-up `/auth/login` request. Refresh secrets and hashes are never returned in JSON. Token lifetime, cookie policy, refresh rotation and logout follow the standard login contract below.
 
 ### Errors
 
 | HTTP | Code                     | Meaning                                                              |
 | ---- | ------------------------ | -------------------------------------------------------------------- |
+| 403  | UNTRUSTED_ORIGIN         | Missing or mismatched browser Origin                                 |
 | 400  | INVALID_JSON             | Malformed JSON                                                       |
 | 409  | EMAIL_ALREADY_REGISTERED | A normalized email already exists, including concurrent requests     |
 | 413  | PAYLOAD_TOO_LARGE        | Body exceeds 100 KiB                                                 |

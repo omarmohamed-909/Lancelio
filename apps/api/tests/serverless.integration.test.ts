@@ -54,14 +54,21 @@ it('serves real production authentication through the Vercel adapter without bin
     password: 'isolated secure runtime password',
     workspaceName: 'Vercel Studio',
   };
+  const registration = await request(app)
+    .post('/api/v1/auth/register')
+    .set('Origin', origin)
+    .send(account);
+  expect(registration.status).toBe(201);
+  expect(String(registration.headers['set-cookie'])).toMatch(
+    /^__Host-lancelio_refresh=/u,
+  );
   expect(
     (
       await request(app)
-        .post('/api/v1/auth/register')
-        .set('Origin', origin)
-        .send(account)
+        .get('/api/v1/auth/me')
+        .set('Authorization', `Bearer ${registration.body.data.accessToken}`)
     ).status,
-  ).toBe(201);
+  ).toBe(200);
   const login = await request(app)
     .post('/api/v1/auth/login')
     .set('Origin', origin)

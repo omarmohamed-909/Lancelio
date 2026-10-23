@@ -43,7 +43,7 @@ import { createWorkspaceSettingsRouter } from '../modules/auth/presentation/work
 import { createProfileRouter } from '../modules/auth/presentation/profile.routes.js';
 import express from 'express';
 import helmet from 'helmet';
-import type { RegisterAccount } from '../modules/auth/application/register-account.js';
+import type { RegisterAndSignIn } from '../modules/auth/application/register-and-sign-in.js';
 import { createRegistrationRouter } from '../modules/auth/presentation/registration.routes.js';
 import { createSessionRouter } from '../modules/auth/presentation/session.routes.js';
 import { createGoogleAuthRouter } from '../modules/auth/presentation/google-auth.routes.js';
@@ -62,7 +62,7 @@ export function createApp(
     checkReadiness?: () => Promise<boolean>;
     profile?: ManageProfile;
     workspaceSettings?: ManageWorkspaceSettings;
-    registerAccount?: RegisterAccount;
+    registerAccount?: RegisterAndSignIn;
     passwordRecovery?: PasswordRecovery;
     passwordChange?: ChangePassword;
     sessions?: SessionEndpoints;
@@ -111,11 +111,18 @@ export function createApp(
     '/api/v1/auth',
     createGoogleAuthRouter(webOrigin, dependencies.google),
   );
-  if (dependencies.registerAccount)
+  if (dependencies.registerAccount) {
+    if (!dependencies.sessions)
+      throw new Error('Registration requires authentication services');
     app.use(
       '/api/v1/auth',
-      createRegistrationRouter(dependencies.registerAccount),
+      createRegistrationRouter(
+        dependencies.registerAccount,
+        webOrigin,
+        dependencies.sessions.secureCookies,
+      ),
     );
+  }
   if (dependencies.passwordRecovery)
     app.use(
       '/api/v1/auth',

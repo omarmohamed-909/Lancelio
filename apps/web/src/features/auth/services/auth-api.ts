@@ -70,7 +70,7 @@ export const authApi = {
       credentials: 'omit',
     }),
   register: (data: RegistrationData) =>
-    request('/auth/register', identitySchema, { body: data }),
+    request('/auth/register', credentialsSchema, { body: data }),
   login: (data: LoginData) =>
     request('/auth/login', credentialsSchema, { body: data }),
   refresh: () => request('/auth/refresh', credentialsSchema, { body: {} }),
@@ -107,8 +107,6 @@ export function errorMessage(error: unknown): string {
       return 'جلسة الدخول انتهت. سجل دخولك من جديد.';
     case 'WORKSPACE_ACCESS_DENIED':
       return 'الحساب ده مش مرتبط بمساحة عمل متاحة.';
-    case 'ACCOUNT_CREATED':
-      return 'حسابك اتعمل بنجاح، لكن الدخول ماكملش. افتح صفحة تسجيل الدخول وحاول من هناك.';
     case 'UNSUPPORTED_BROWSER':
       return 'جلسة الدخول تحتاج متصفح حديث. حدّث المتصفح وحاول مرة تانية.';
     case 'VALIDATION_ERROR':

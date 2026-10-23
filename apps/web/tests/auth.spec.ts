@@ -266,7 +266,7 @@ test.beforeEach(async () => {
       },
       () => shareNow,
     ),
-    registerAccount,
+    registerAccount: sessions.register,
     clients,
     payments: createPayments(
       paymentModel,
@@ -334,7 +334,16 @@ test('register, real identity, logout, unauthorized redirect, and login', async 
   page,
   context,
 }) => {
+  let passwordLoginCalls = 0;
+  page.on('request', (request) => {
+    if (new URL(request.url()).pathname.endsWith('/auth/login'))
+      passwordLoginCalls++;
+  });
   await register(page);
+  expect(passwordLoginCalls).toBe(0);
+  expect(await sessionModel.countDocuments()).toBe(1);
+  await page.reload();
+  await expect(page).toHaveURL('/dashboard');
   await expect(page.locator('.account-panel')).toContainText(
     account.workspaceName,
   );

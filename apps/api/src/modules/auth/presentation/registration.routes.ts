@@ -2,7 +2,8 @@ import { Router } from 'express';
 import { rateLimit } from 'express-rate-limit';
 import { z } from 'zod';
 import { ApplicationError } from '../../../shared/domain/application-error.js';
-import type { RegisterAccount } from '../application/register-account.js';
+import type { RegisterAndSignIn } from '../application/register-and-sign-in.js';
+import { setRefreshCookie } from './refresh-cookie.js';
 
 const requestSchema = z.strictObject({
   name: z.string(),
@@ -11,10 +12,26 @@ const requestSchema = z.strictObject({
   workspaceName: z.string().optional(),
 });
 
-export function createRegistrationRouter(registerAccount: RegisterAccount) {
+export function createRegistrationRouter(
+  registerAccount: RegisterAndSignIn,
+  webOrigin: string,
+  secureCookies: boolean,
+) {
   const router = Router();
+  router.use((_request, response, next) => {
+    response.setHeader('Cache-Control', 'no-store');
+    next();
+  });
   router.post(
     '/register',
+    (request, _response, next) => {
+      if (request.get('origin') !== webOrigin)
+        throw new ApplicationError(
+          'UNTRUSTED_ORIGIN',
+          'Request origin is not allowed',
+        );
+      next();
+    },
     rateLimit({
       windowMs: 15 * 60 * 1000,
       limit: 20,
@@ -45,7 +62,22 @@ export function createRegistrationRouter(registerAccount: RegisterAccount) {
           : {}),
       };
       const account = await registerAccount.execute(input);
-      response.status(201).json({ success: true, data: account });
+      response.setHeader('Cache-Control', 'no-store');
+      setRefreshCookie(
+        response,
+        secureCookies,
+        account.refreshToken,
+        account.refreshExpiresAt,
+      );
+      response.status(201).json({
+        success: true,
+        data: {
+          ...account.identity,
+          accessToken: account.accessToken,
+          expiresIn: account.expiresIn,
+          tokenType: 'Bearer',
+        },
+      });
     },
   );
   return router;

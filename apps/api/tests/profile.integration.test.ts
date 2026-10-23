@@ -64,7 +64,7 @@ describe('own profile settings with real Mongo CAS', () => {
     );
     app = createApp(origin, {
       sessions,
-      registerAccount: register,
+      registerAccount: sessions.register,
       profile: createProfile(models.User),
     });
   }, 240_000);
@@ -243,6 +243,7 @@ describe('own profile settings with real Mongo CAS', () => {
       (
         await request(app)
           .post('/api/v1/auth/register')
+          .set('Origin', origin)
           .send({ ...account, email: 'unicode@example.com', name: '🌟' })
       ).status,
     ).toBe(422);

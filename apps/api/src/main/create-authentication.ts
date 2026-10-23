@@ -1,5 +1,8 @@
 import { AuthenticateSession } from '../modules/auth/application/authenticate-session.js';
 import { Login } from '../modules/auth/application/login.js';
+import { RegisterAndSignIn } from '../modules/auth/application/register-and-sign-in.js';
+import { MongoRegistrationStore } from '../modules/auth/infrastructure/mongo-registration-store.js';
+import { Argon2PasswordHasher } from '../modules/auth/infrastructure/argon2-password-hasher.js';
 import { RefreshSession } from '../modules/auth/application/refresh-session.js';
 import { Logout } from '../modules/auth/application/logout.js';
 import { createConsumedRefreshModel } from '../modules/auth/infrastructure/consumed-refresh-model.js';
@@ -26,6 +29,12 @@ export async function createAuthentication(
   await consumed.createIndexes();
   const refreshStore = new MongoRefreshSessionStore(sessions, consumed);
   return {
+    register: new RegisterAndSignIn(
+      new MongoRegistrationStore(models.User.db, models, sessions),
+      new Argon2PasswordHasher(),
+      tokens,
+      clock,
+    ),
     login: new Login(store, verifier, tokens, clock),
     authenticate: new AuthenticateSession(store, tokens, clock),
     refresh: new RefreshSession(refreshStore, store, tokens, tokens, clock),

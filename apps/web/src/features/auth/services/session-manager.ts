@@ -209,15 +209,7 @@ export class SessionManager {
   async register(input: RegistrationData) {
     await this.exclusive(async () => {
       const generation = ++this.generation;
-      await authApi.register(input);
-      try {
-        this.accept(
-          await authApi.login({ email: input.email, password: input.password }),
-          generation,
-        );
-      } catch {
-        throw new ApiError(0, 'ACCOUNT_CREATED');
-      }
+      this.accept(await authApi.register(input), generation);
       this.channel?.postMessage('signed-in');
     });
   }

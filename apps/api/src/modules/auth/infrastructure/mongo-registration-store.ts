@@ -1,5 +1,5 @@
 import { mongo, Types } from 'mongoose';
-import type { Connection } from 'mongoose';
+import type { ClientSession, Connection } from 'mongoose';
 import { ApplicationError } from '../../../shared/domain/application-error.js';
 import type {
   NewOwnerAccount,
@@ -7,14 +7,53 @@ import type {
 } from '../application/ports/registration-store.js';
 import type { AccountSummary } from '../domain/registration.js';
 import type { RegistrationModels } from './registration-models.js';
+import type { RegistrationSessionStore } from '../application/ports/registration-session-store.js';
+import type { SessionModel } from './session-model.js';
 
-export class MongoRegistrationStore implements RegistrationStore {
+export class MongoRegistrationStore
+  implements RegistrationStore, RegistrationSessionStore
+{
   constructor(
     private readonly connection: Connection,
     private readonly models: RegistrationModels,
+    private readonly sessions?: SessionModel,
   ) {}
 
   async createOwnerAccount(account: NewOwnerAccount): Promise<AccountSummary> {
+    return this.persist(account, async (identity) => identity);
+  }
+
+  async createOwnerAccountAndSession(
+    account: NewOwnerAccount,
+    issue: Parameters<
+      RegistrationSessionStore['createOwnerAccountAndSession']
+    >[1],
+  ) {
+    const sessions = this.sessions;
+    if (!sessions)
+      throw new Error('Registration session persistence is not configured');
+    return this.persist(account, async (identity, session) => {
+      const grant = await issue(identity);
+      await sessions.create(
+        [
+          {
+            _id: grant.sessionId,
+            user: identity.user.id,
+            workspace: identity.workspace.id,
+            refreshTokenHash: grant.refreshTokenHash,
+            expiresAt: grant.refreshExpiresAt,
+          },
+        ],
+        { session },
+      );
+      return { identity, grant };
+    });
+  }
+
+  private async persist<T>(
+    account: NewOwnerAccount,
+    complete: (identity: AccountSummary, session: ClientSession) => Promise<T>,
+  ): Promise<T> {
     try {
       return await this.connection.transaction(
         async (session) => {
@@ -41,22 +80,25 @@ export class MongoRegistrationStore implements RegistrationStore {
           });
           await membership.save({ session });
 
-          return {
-            user: {
-              id: user._id.toHexString(),
-              name: user.name,
-              email: user.email,
+          return complete(
+            {
+              user: {
+                id: user._id.toHexString(),
+                name: user.name,
+                email: user.email,
+              },
+              workspace: {
+                id: workspace._id.toHexString(),
+                name: workspace.name,
+                slug: workspace.slug,
+              },
+              membership: {
+                id: membership._id.toHexString(),
+                role: 'owner' as const,
+              },
             },
-            workspace: {
-              id: workspace._id.toHexString(),
-              name: workspace.name,
-              slug: workspace.slug,
-            },
-            membership: {
-              id: membership._id.toHexString(),
-              role: 'owner' as const,
-            },
-          };
+            session,
+          );
         },
         {
           readPreference: 'primary',

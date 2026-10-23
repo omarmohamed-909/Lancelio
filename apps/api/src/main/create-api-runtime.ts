@@ -36,9 +36,6 @@ import { createGoogleAuthentication } from './create-google-authentication.js';
 import { createProfile } from './create-profile.js';
 import { createWorkspaceSettings } from './create-workspace-settings.js';
 import { createSessionModel } from '../modules/auth/infrastructure/session-model.js';
-import { RegisterAccount } from '../modules/auth/application/register-account.js';
-import { Argon2PasswordHasher } from '../modules/auth/infrastructure/argon2-password-hasher.js';
-import { MongoRegistrationStore } from '../modules/auth/infrastructure/mongo-registration-store.js';
 import {
   createRegistrationModels,
   initializeRegistrationModels,
@@ -73,10 +70,7 @@ export async function createApiRuntime(
           )
         : null,
     );
-    const registerAccount = new RegisterAccount(
-      new MongoRegistrationStore(database, models),
-      new Argon2PasswordHasher(),
-    );
+    const registerAccount = sessions.register;
     const clientModel = createClientModel(database);
     await clientModel.createCollection();
     await clientModel.createIndexes();

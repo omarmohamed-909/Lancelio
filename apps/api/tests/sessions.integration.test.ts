@@ -82,7 +82,7 @@ describe('Login and authenticated workspace access', () => {
     await models.Membership.deleteMany({});
     await models.Workspace.deleteMany({});
     await models.User.deleteMany({});
-    app = createApp(origin, { registerAccount, sessions });
+    app = createApp(origin, { registerAccount: sessions.register, sessions });
     await registerAccount.execute(account);
   });
 
@@ -378,6 +378,7 @@ describe('Login and authenticated workspace access', () => {
     };
     const registered = await request(app)
       .post('/api/v1/auth/register')
+      .set('Origin', origin)
       .send(second);
     expect(registered.status).toBe(201);
     for (let attempt = 0; attempt < 12; attempt++) {
@@ -393,7 +394,7 @@ describe('Login and authenticated workspace access', () => {
       ).toBe(selected.email);
     }
     expect(await models.User.countDocuments()).toBe(2);
-    expect(await sessionModel.countDocuments()).toBe(12);
+    expect(await sessionModel.countDocuments()).toBe(13);
   }, 30000);
   it('contains repeated wrong passwords to the normalized mailbox without blocking another account', async () => {
     const second = {
