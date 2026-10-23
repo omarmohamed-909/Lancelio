@@ -6,10 +6,12 @@ Lancelio uses the Google Identity Services button and verifies RS256 ID tokens o
 
 1. In [Google Auth Platform](https://console.cloud.google.com/auth/clients), select/create a project. Configure Branding (Lancelio, support email, homepage, privacy and terms links), Audience, and any required verification/publication shown by Google. While the app is in testing, configure test users as Google requires.
 2. Create a **Web application** OAuth client. Add these **Authorized JavaScript origins**, with no paths or trailing slash:
-   - `https://lancelio-gamma.vercel.app`
+   - `https://www.lancelio.tech`
    - `http://localhost`
    - `http://localhost:3000`
 3. Copy the `…apps.googleusercontent.com` Client ID into **GOOGLE_CLIENT_ID** on the API Vercel project, for the environments you intend to enable. Redeploy the API. For local development add it to `apps/api/.env` and restart the API. The Client ID is public; never paste a Client Secret or Gemini API key into this field.
+   - Production API `WEB_ORIGIN` must be `https://www.lancelio.tech`, without `/login` or a trailing slash. The apex domain redirects to `www`.
+   - For Google Branding, use authorized domain `lancelio.tech`, homepage `https://www.lancelio.tech`, privacy `https://www.lancelio.tech/privacy`, and terms `https://www.lancelio.tech/terms`. Complete any domain verification Google requests.
 4. No frontend environment variable or redirect URI is needed for this JavaScript popup callback flow. The frontend reads the public client ID from `/api/v1/auth/google/config` and loads the official Google library only when enabled. No One Tap or automatic sign-in is enabled.
 5. For a preview/custom domain, explicitly authorize that frontend origin in Google and use the matching API `WEB_ORIGIN`. Do not wildcard origins or treat arbitrary preview deployments as trusted.
 6. Test real Google accounts on the production domain and real mobile/PWA browsers. A popup, Google policy, organizational restrictions or browser configuration may affect the chooser; password sign-in remains available.
