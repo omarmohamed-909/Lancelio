@@ -3,7 +3,7 @@ import type { Locale } from '../../i18n/locale';
 export const legalOperator = {
   name: 'عمر محمد',
   email: 'omar.m.ombark@gmail.com',
-  updated: '2026-10-20',
+  updated: '2026-10-23',
 } as const;
 
 export const legalDocumentIds = ['privacy', 'terms', 'cookies'] as const;
@@ -230,6 +230,7 @@ export const legalContent: Record<
           title: 'ما يُحفظ محليًا على الجهاز',
           paragraphs: [
             'يستخدم المتصفح أيضًا التخزين المحلي، وهو مختلف عن ملفات الارتباط ولا يُرسل تلقائيًا مع كل طلب.',
+            'تستخدم نسخة التطبيق أيضًا ذاكرة المتصفح لحفظ شاشة انقطاع الاتصال والأيقونات العامة فقط. لا يخزّن عامل تشغيل التطبيق صفحات الحساب أو سجلات العملاء والفواتير أو استجابات API، ولا يحتفظ بطابور تعديلات لإرساله لاحقًا.',
           ],
           table: {
             columns: ['التفضيل', 'الغرض', 'مدة البقاء'],
@@ -459,6 +460,7 @@ export const legalContent: Record<
           title: 'Information stored on the device',
           paragraphs: [
             'The browser also uses local storage. Unlike cookies, its contents are not automatically sent with every request.',
+            'The app also uses browser cache storage for the public offline screen and icons only. Its service worker does not cache account pages, client or invoice records, or API responses, and does not queue changes for later delivery.',
           ],
           table: {
             columns: ['Preference', 'Purpose', 'Duration'],

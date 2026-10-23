@@ -1087,6 +1087,7 @@ export function LandingPage({ returning = false }: { returning?: boolean }) {
           <p>{t('مصمّم لمساحة أوضح في يومك.')}</p>
         </div>
         <nav aria-label={t('استكشف Lancelio')}>
+          <Link href="/install">{t('تثبيت التطبيق')}</Link>
           {navItems.map(([href, label]) => (
             <a key={href} href={href}>
               {t(label)}

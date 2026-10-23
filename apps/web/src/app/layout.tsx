@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import localFont from 'next/font/local';
 import type { ReactNode } from 'react';
 import '../styles/tokens.css';
@@ -23,6 +23,7 @@ import './theme.css';
 import './select.css';
 import './language.css';
 import './assistant.css';
+import './pwa.css';
 import { requestLanguage } from '../i18n/request-locale';
 import { LanguageProvider } from '../i18n/language-provider';
 import { ThemeProvider } from '../components/theme/theme-provider';
@@ -30,6 +31,7 @@ import { themeScript } from '../components/theme/theme-script';
 import { FeedbackProvider } from '../components/ui/feedback-provider';
 import { SkipLink } from '../components/ui/skip-link';
 import { SessionBoundary } from '../features/auth/components/session-boundary';
+import { PwaProvider } from '../features/pwa/components/pwa-provider';
 
 const interfaceFont = localFont({
   src: [
@@ -57,7 +59,11 @@ const interfaceFont = localFont({
 export const metadata: Metadata = {
   title: 'Lancelio',
   description: 'Run your freelance business from one place.',
+  applicationName: 'Lancelio',
+  appleWebApp: { capable: true, title: 'Lancelio', statusBarStyle: 'default' },
 };
+
+export const viewport: Viewport = { themeColor: '#173d30' };
 
 export default async function RootLayout({
   children,
@@ -81,9 +87,11 @@ export default async function RootLayout({
         <LanguageProvider initialLocale={locale} initialPreference={preference}>
           <SkipLink />
           <ThemeProvider>
-            <FeedbackProvider>
-              <SessionBoundary>{children}</SessionBoundary>
-            </FeedbackProvider>
+            <PwaProvider>
+              <FeedbackProvider>
+                <SessionBoundary>{children}</SessionBoundary>
+              </FeedbackProvider>
+            </PwaProvider>
           </ThemeProvider>
         </LanguageProvider>
       </body>

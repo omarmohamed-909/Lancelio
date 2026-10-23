@@ -18,7 +18,11 @@ if (upstream) {
 const config: NextConfig = {
   // Browser checks can run beside the user's development server.
   distDir:
-    process.env.E2E_ISOLATED_BUILD === '1' ? '../../.cache/next-e2e' : '.next',
+    process.env.PWA_ISOLATED_BUILD === '1'
+      ? '../../.cache/next-pwa'
+      : process.env.E2E_ISOLATED_BUILD === '1'
+        ? '../../.cache/next-e2e'
+        : '.next',
   devIndicators: false,
   poweredByHeader: false,
   rewrites: () =>
@@ -26,6 +30,14 @@ const config: NextConfig = {
       ? [{ source: '/api/v1/:path*', destination: `${upstream}/api/v1/:path*` }]
       : [],
   headers: () => [
+    {
+      source: '/sw.js',
+      headers: [
+        { key: 'Cache-Control', value: 'no-store, max-age=0, must-revalidate' },
+        { key: 'Content-Type', value: 'application/javascript; charset=utf-8' },
+        { key: 'Service-Worker-Allowed', value: '/' },
+      ],
+    },
     {
       source: '/:path*',
       headers: [

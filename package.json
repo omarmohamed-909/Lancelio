@@ -24,6 +24,7 @@
     "check": "npm run format:check && npm run lint && npm run architecture:check && npm run test:localization && npm run typecheck && npm run typecheck:release && npm test && npm run build",
     "test:e2e": "npm run test:e2e --workspace @lancelio/web --",
     "test:responsive": "npm run test:responsive --workspace @lancelio/web --",
+    "test:pwa": "npm run test:pwa --workspace @lancelio/web --",
     "typecheck:release": "tsc -p tools/release/tsconfig.json",
     "test:release": "playwright test --config apps/web/playwright.release.config.ts",
     "test:backup": "node --import tsx --test tools/release/backup.test.ts",

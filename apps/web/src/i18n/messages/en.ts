@@ -1,10 +1,12 @@
 import { assistantEn } from './assistant';
 import { landingEn } from './landing';
 import { legalEn } from './legal';
+import { pwaEn } from './pwa';
 export const en = {
   ...assistantEn,
   ...landingEn,
   ...legalEn,
+  ...pwaEn,
   'تم تحديث حالة المشروع إلى «{0}».': 'Project status updated to “{0}”.',
   'دفتر العملاء | Lancelio': 'Clients | Lancelio',
   'بوابة العميل | Lancelio': 'Client portal | Lancelio',

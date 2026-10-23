@@ -1,10 +1,12 @@
 import { assistantAr } from './assistant';
 import { landingAr } from './landing';
 import { legalAr } from './legal';
+import { pwaAr } from './pwa';
 export const ar = {
   ...assistantAr,
   ...landingAr,
   ...legalAr,
+  ...pwaAr,
   'تم تحديث حالة المشروع إلى «{0}».': 'تم تحديث حالة المشروع إلى «{0}».',
   'دفتر العملاء | Lancelio': 'دفتر العملاء | Lancelio',
   'بوابة العميل | Lancelio': 'بوابة العميل | Lancelio',

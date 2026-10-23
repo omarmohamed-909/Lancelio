@@ -1,7 +1,8 @@
 'use client';
 import { useI18n } from '../../../i18n/language-provider';
 
-import { Monitor, Moon, Sun } from 'lucide-react';
+import { Download, Monitor, Moon, Sun } from 'lucide-react';
+import Link from 'next/link';
 import { useTheme } from '../../../components/theme/theme-provider';
 
 const choices = [
@@ -65,6 +66,10 @@ export function AppearanceSettings() {
           'اختيارك بيتطبّق فورًا وبيتحفظ على المتصفح ده. تقدر تبدّل بسرعة من زر المظهر أعلى الصفحة.',
         )}{' '}
       </p>
+      <Link href="/install" className="pwa-settings-link">
+        <Download size={18} aria-hidden="true" />
+        {t('تثبيت التطبيق')}
+      </Link>
     </section>
   );
 }

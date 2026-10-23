@@ -7,7 +7,9 @@ export function SessionBoundary({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   if (
     pathname === '/' ||
-    ['/legal', '/privacy', '/terms', '/cookies'].includes(pathname) ||
+    ['/legal', '/privacy', '/terms', '/cookies', '/install'].includes(
+      pathname,
+    ) ||
     pathname.startsWith('/share/') ||
     pathname === '/forgot-password' ||
     pathname === '/reset-password'

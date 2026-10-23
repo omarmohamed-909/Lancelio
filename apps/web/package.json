@@ -11,12 +11,13 @@
     "start": "next start",
     "typecheck": "next typegen && tsc --noEmit",
     "test:e2e": "playwright test",
-    "test:responsive": "playwright test --grep \"responsive audit\""
+    "test:responsive": "playwright test --grep \"responsive audit\"",
+    "test:pwa": "playwright test --config playwright.pwa.config.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "5.9.1",
     "lucide-react": "1.52.0",
-    "next": "16.4.0",
+    "next": "16.4.2",
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "react-hook-form": "7.89.0",
