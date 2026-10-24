@@ -27,6 +27,14 @@ function parse<T>(schema: z.ZodType<T>, input: unknown) {
   return parsed.data;
 }
 const revision = z.strictObject({ version: z.number().int().nonnegative() });
+// Authentication runs before this router. Rate limits follow the authenticated
+// account, never a shared Vercel proxy address or a user-supplied forwarded IP.
+const accountKey: NonNullable<
+  NonNullable<Parameters<typeof rateLimit>[0]>['keyGenerator']
+> = (_request, response) => {
+  const identity = response.locals.identity as { user: { id: string } };
+  return identity.user.id;
+};
 export function createClientAccessRouter(
   service: ManageClientAccess,
   origin: string,
@@ -38,6 +46,7 @@ export function createClientAccessRouter(
       limit: 90,
       standardHeaders: 'draft-8',
       legacyHeaders: false,
+      keyGenerator: accountKey,
     }),
   );
   router.use((request, response, next) => {
@@ -171,6 +180,7 @@ export function createClientAccessRouter(
       limit: 10,
       standardHeaders: 'draft-8',
       legacyHeaders: false,
+      keyGenerator: accountKey,
       message: { success: false, error: { code: 'RATE_LIMITED' } },
     }),
     issue,

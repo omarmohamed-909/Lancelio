@@ -542,6 +542,32 @@ describe('Account-bound client invitations', () => {
       ).status,
     ).toBe(404);
   });
+  it('isolates account quotas behind a shared proxy and ignores spoofed forwarded addresses', async () => {
+    const logged = vi.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      const call = (token: string, ip: string) =>
+        request(app)
+          .get('/api/v1/client-access/list')
+          .set('Authorization', 'Bearer ' + token)
+          .set('X-Forwarded-For', ip)
+          .set('Forwarded', `for=${ip};proto=https`);
+      let limited = false;
+      for (let attempt = 0; attempt < 91; attempt++) {
+        const response = await call(clientToken, '203.0.113.10');
+        if (response.status === 429) {
+          limited = true;
+          break;
+        }
+        expect(response.status).toBe(200);
+      }
+      expect(limited).toBe(true);
+      expect((await call(clientToken, '198.51.100.2')).status).toBe(429);
+      expect((await call(strangerToken, '203.0.113.10')).status).toBe(200);
+      expect(logged).not.toHaveBeenCalled();
+    } finally {
+      logged.mockRestore();
+    }
+  });
   it('escapes names and isolates Arabic layout, uses canonical fragment links and provider idempotency', async () => {
     const result = await issue();
     const message = {

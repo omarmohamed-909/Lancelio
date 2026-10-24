@@ -15,7 +15,7 @@ Invitations appear under **Working with** (`/connections`), with a pending badge
 
 ## Authorization and data
 
-The `ClientAccess` collection has one versioned invitation/access record per workspace/client. Creation and acceptance use transactions and conditional versions. Simultaneous creation/acceptance has one winner. Owner controls are workspace scoped and limited to owner/admin; mutations require the configured trusted origin. Endpoints are authenticated, rate limited and return `Cache-Control: no-store`.
+The `ClientAccess` collection has one versioned invitation/access record per workspace/client. Creation and acceptance use transactions and conditional versions. Simultaneous creation/acceptance has one winner. Owner controls are workspace scoped and limited to owner/admin; mutations require the configured trusted origin. Endpoints are authenticated, rate limited per authenticated account and return `Cache-Control: no-store`. Client-portal limits do not combine different accounts behind Vercel or a shared device, and forwarded headers cannot bypass an account's quota.
 
 Acceptance binds access to the authenticated user ID and invited email. Every portal read checks the current active user, accepted record, current client email and non-archived client inside the same snapshot transaction used to read the portal. The portal reuses the existing client-scoped projection: this client's projects, explicitly visible tasks, issued invoices and computed balances. It excludes private notes, drafts, other clients, and payment ledger details. Revocation/leave blocks later reads; neither modifies the recipient's own workspace.
 
