@@ -17,7 +17,13 @@ export interface ClientPage {
   items: Client[];
   nextCursor: string | null;
 }
-export function validateDetails(input: ClientDetails): ClientDetails {
+export interface ClientPhoneNumbers {
+  normalize(value: string): string | null;
+}
+export function validateDetails(
+  input: ClientDetails,
+  phones: ClientPhoneNumbers,
+): ClientDetails {
   const value = {
     name: input.name.trim(),
     email: input.email.trim().toLowerCase(),
@@ -36,11 +42,9 @@ export function validateDetails(input: ClientDetails): ClientDetails {
       ))
   )
     fields.email = 'Invalid email';
-  if (
-    value.phone &&
-    (!/^[+0-9() .-]{3,40}$/u.test(value.phone) || !/[0-9]/u.test(value.phone))
-  )
-    fields.phone = 'Invalid phone number';
+  const phone = phones.normalize(value.phone);
+  if (phone === null) fields.phone = 'Invalid international phone number';
+  else value.phone = phone;
   if (Array.from(value.company).length > 120)
     fields.company = 'Company must not exceed 120 characters';
   if (Array.from(value.notes).length > 2000)

@@ -10,6 +10,7 @@
     "npm": ">=10 <11"
   },
   "scripts": {
+    "test:phone": "vitest run tools/phone-numbers.test.ts",
     "assistant:check": "npm run assistant:check --workspace @lancelio/api --",
     "test:localization": "node --import tsx --test tools/localization.test.ts",
     "test:email-render": "node --import tsx --test tools/welcome-email-render.test.ts",
@@ -22,7 +23,7 @@
     "typecheck": "npm run typecheck --workspaces",
     "test": "npm run test --workspace @lancelio/api",
     "build": "npm run build --workspaces",
-    "check": "npm run format:check && npm run lint && npm run architecture:check && npm run test:localization && npm run typecheck && npm run typecheck:release && npm test && npm run build",
+    "check": "npm run format:check && npm run lint && npm run architecture:check && npm run test:localization && npm run test:phone && npm run typecheck && npm run typecheck:release && npm test && npm run build",
     "test:e2e": "npm run test:e2e --workspace @lancelio/web --",
     "test:responsive": "npm run test:responsive --workspace @lancelio/web --",
     "test:pwa": "npm run test:pwa --workspace @lancelio/web --",

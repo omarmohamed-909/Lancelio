@@ -301,6 +301,32 @@
 .client-notes {
   grid-column: 1/-1;
 }
+.client-phone {
+  grid-column: 1/-1;
+}
+.client-phone-controls {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr);
+  gap: 10px;
+}
+.client-phone-controls .ui-select {
+  width: 100%;
+  min-width: 0;
+}
+.client-phone-controls input {
+  min-width: 0;
+}
+.client-phone-help {
+  font-size: 12px;
+  line-height: 1.8;
+  color: var(--muted);
+  margin-block: 7px 0;
+}
+@media (max-width: 420px) {
+  .client-phone-controls {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
 .client-fields textarea {
   width: 100%;
   resize: vertical;

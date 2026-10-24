@@ -32,9 +32,8 @@ import {
 } from '../src/modules/auth/infrastructure/registration-models.js';
 import { createSessionModel } from '../src/modules/auth/infrastructure/session-model.js';
 import { createConsumedRefreshModel } from '../src/modules/auth/infrastructure/consumed-refresh-model.js';
-import { ManageClients } from '../src/modules/clients/application/manage-clients.js';
+import { createClients } from '../src/main/create-clients.js';
 import { createClientModel } from '../src/modules/clients/infrastructure/client-model.js';
-import { MongoClientStore } from '../src/modules/clients/infrastructure/mongo-client-store.js';
 import { mongoBinaryOptions } from './helpers/mongo-binary.js';
 const origin = 'http://localhost:3000';
 const account = {
@@ -129,7 +128,7 @@ describe('Transactional draft proposals and workspace isolation', () => {
       sharing,
       sessions,
       proposals,
-      clients: new ManageClients(new MongoClientStore(clientModel)),
+      clients: createClients(clientModel),
     });
     await register.execute(account);
     const login = await sessions.login.execute(account);

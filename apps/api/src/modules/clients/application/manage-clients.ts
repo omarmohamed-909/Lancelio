@@ -6,12 +6,22 @@ import {
   validateId,
   validateVersion,
 } from '../domain/client.js';
-import type { Client, ClientDetails } from '../domain/client.js';
+import type {
+  Client,
+  ClientDetails,
+  ClientPhoneNumbers,
+} from '../domain/client.js';
 import type { ClientStore } from './ports/client-store.js';
 export class ManageClients {
-  constructor(private readonly store: ClientStore) {}
+  constructor(
+    private readonly store: ClientStore,
+    private readonly phones: ClientPhoneNumbers,
+  ) {}
   create(workspaceId: string, details: ClientDetails) {
-    return this.store.create(validateId(workspaceId), validateDetails(details));
+    return this.store.create(
+      validateId(workspaceId),
+      validateDetails(details, this.phones),
+    );
   }
   list(workspaceId: string, query: ClientListInput) {
     return this.store.list(validateId(workspaceId), validateClientList(query));
@@ -32,7 +42,7 @@ export class ManageClients {
     details: ClientDetails,
   ) {
     validateVersion(version);
-    const clean = validateDetails(details);
+    const clean = validateDetails(details, this.phones);
     const scope = validateId(workspaceId);
     const clientId = validateId(id);
     const result = await this.store.update(scope, clientId, version, clean);

@@ -38,9 +38,9 @@ import { createProposalSharing } from '../../api/src/main/create-proposal-sharin
 import { createProposals } from '../../api/src/main/create-proposals.js';
 import { createProposalModel } from '../../api/src/modules/proposals/infrastructure/proposal-model.js';
 import type { ManageProposals } from '../../api/src/modules/proposals/application/manage-proposals.js';
-import { ManageClients } from '../../api/src/modules/clients/application/manage-clients.js';
+import type { ManageClients } from '../../api/src/modules/clients/application/manage-clients.js';
+import { createClients } from '../../api/src/main/create-clients.js';
 import { createClientModel } from '../../api/src/modules/clients/infrastructure/client-model.js';
-import { MongoClientStore } from '../../api/src/modules/clients/infrastructure/mongo-client-store.js';
 import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
 import type { Server } from 'node:http';
@@ -125,7 +125,7 @@ test.beforeAll(async () => {
   clientModel = createClientModel(database);
   await clientModel.createCollection();
   await clientModel.createIndexes();
-  clients = new ManageClients(new MongoClientStore(clientModel));
+  clients = createClients(clientModel);
   proposalModel = createProposalModel(database);
   await proposalModel.createCollection();
   await proposalModel.createIndexes();
@@ -976,7 +976,9 @@ async function newClient(page: Page, name = 'سارة علي') {
   await page.getByRole('button', { name: 'عميل جديد', exact: true }).click();
   await page.getByLabel('اسم العميل', { exact: true }).fill(name);
   await page.getByLabel('بريد العميل').fill('sara@example.com');
-  await page.getByLabel('رقم الهاتف').fill('+20 100 555 4444');
+  await page
+    .getByRole('textbox', { name: /^رقم الهاتف/ })
+    .fill('+20 100 555 4444');
   await page.getByLabel('الشركة').fill('استوديو سارة');
   await page.getByLabel('ملاحظات').fill('التواصل بالبريد صباحًا');
 }
@@ -1000,7 +1002,9 @@ test('client creation, validation, single submit, editing, archive and persisted
   await expect(page.locator('#client-name-error')).toBeVisible();
   await page.getByLabel('اسم العميل', { exact: true }).fill('سارة علي');
   await page.getByLabel('بريد العميل').fill('sara@example.com');
-  await page.getByLabel('رقم الهاتف').fill('+20 100 555 4444');
+  await page
+    .getByRole('textbox', { name: /^رقم الهاتف/ })
+    .fill('+20 100 555 4444');
   await page.getByLabel('الشركة').fill('استوديو سارة');
   await page.getByLabel('ملاحظات').fill('التواصل بالبريد صباحًا');
   await page.screenshot({
@@ -1102,6 +1106,127 @@ test('client creation, validation, single submit, editing, archive and persisted
   expect(await clientModel.countDocuments()).toBe(2);
 });
 
+test('client phone validates selected country, Arabic digits and international paste before saving', async ({
+  page,
+}) => {
+  await register(page);
+  await openClients(page);
+  await page.getByRole('button', { name: 'عميل جديد', exact: true }).click();
+  await page.getByLabel('اسم العميل', { exact: true }).fill('عميل دولي');
+  await selectOption(
+    page.getByRole('combobox', { name: 'دولة رقم الهاتف', exact: true }),
+    'SA',
+  );
+  const phone = page.getByRole('textbox', { name: /^رقم الهاتف/ });
+  let writes = 0;
+  page.on('request', (request) => {
+    if (
+      request.method() === 'POST' &&
+      new URL(request.url()).pathname === '/api/v1/clients'
+    )
+      writes++;
+  });
+  await phone.fill('12345');
+  await page.getByRole('button', { name: 'إضافة العميل', exact: true }).click();
+  await expect(page.locator('#client-phone-error')).toBeVisible();
+  expect(writes).toBe(0);
+  await phone.fill('٠٥٥١٢٣٤٥٦٧');
+  await page.getByRole('button', { name: 'إضافة العميل', exact: true }).click();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  expect(
+    (await clientModel.findOne({ name: 'عميل دولي' }).orFail()).phone,
+  ).toBe('+966551234567');
+  await page
+    .getByRole('button', { name: 'تعديل عميل دولي', exact: true })
+    .click();
+  await expect(
+    page.getByRole('combobox', { name: 'دولة رقم الهاتف', exact: true }),
+  ).toHaveAttribute('value', 'SA');
+  await phone.fill('٠٠٤٤ ٢٠ ٧٩٤٦ ٠٠١٨');
+  await expect(
+    page.getByRole('combobox', { name: 'دولة رقم الهاتف', exact: true }),
+  ).toHaveAttribute('value', 'GB');
+  await selectOption(
+    page.getByRole('combobox', { name: 'دولة رقم الهاتف', exact: true }),
+    'GB',
+  );
+  await expect(phone).toHaveValue('2079460018');
+  await page
+    .getByRole('button', { name: 'حفظ التعديلات', exact: true })
+    .click();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  expect(
+    (await clientModel.findOne({ name: 'عميل دولي' }).orFail()).phone,
+  ).toBe('+442079460018');
+  expect(writes).toBe(1);
+});
+for (const language of ['ar', 'en'] as const)
+  test(`client phone mobile country picker ${language} accessibility`, async ({
+    page,
+    context,
+  }) => {
+    await register(page);
+    await context.addCookies([
+      {
+        name: 'lancelio_language',
+        value: language,
+        domain: 'localhost',
+        path: '/',
+      },
+    ]);
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/clients?new=1');
+    const country = page.getByRole('combobox', {
+      name: language === 'ar' ? 'دولة رقم الهاتف' : 'Phone country',
+      exact: true,
+    });
+    await selectOption(country, 'GB');
+    await page
+      .getByLabel(language === 'ar' ? 'اسم العميل' : 'Client name', {
+        exact: true,
+      })
+      .fill('International client');
+    await page
+      .getByRole('textbox', {
+        name: language === 'ar' ? /^رقم الهاتف/ : /^Phone number/,
+      })
+      .fill('12345');
+    await page
+      .getByRole('button', {
+        name: language === 'ar' ? 'إضافة العميل' : 'Add client',
+        exact: true,
+      })
+      .click();
+    await expect(page.locator('#client-phone-error')).toBeVisible();
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+    ).toBe(true);
+    expect(
+      (
+        await new AxeBuilder({ page })
+          .withTags(['wcag2a', 'wcag2aa', 'wcag21aa'])
+          .analyze()
+      ).violations,
+    ).toEqual([]);
+    await page.screenshot({
+      path: resolve(
+        import.meta.dirname,
+        `../../../.cache/ui/phone-country-${language}-mobile.png`,
+      ),
+      fullPage: true,
+    });
+    await country.click();
+    await expect(page.getByRole('listbox')).toBeVisible();
+    await page.screenshot({
+      path: resolve(
+        import.meta.dirname,
+        `../../../.cache/ui/phone-country-${language}-picker.png`,
+      ),
+      fullPage: true,
+    });
+  });
 test('client edits preserve newer data, reload a conflict, and renew expired access once', async ({
   page,
 }) => {

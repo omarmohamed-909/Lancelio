@@ -1,9 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import {
-  validateDetails,
+  validateDetails as validateClientDetails,
   validateId,
   validateVersion,
 } from '../src/modules/clients/domain/client.js';
+import type { ClientDetails } from '../src/modules/clients/domain/client.js';
+import { InternationalPhoneNumbers } from '../src/modules/clients/infrastructure/international-phone-numbers.js';
+const phones = new InternationalPhoneNumbers();
+const validateDetails = (input: ClientDetails) =>
+  validateClientDetails(input, phones);
 const details = {
   name: '  أحمد  ',
   email: '  CLIENT@Example.com ',
@@ -16,7 +21,7 @@ describe('Client domain validation', () => {
     expect(validateDetails(details)).toEqual({
       name: 'أحمد',
       email: 'client@example.com',
-      phone: '+20 (100) 555-1234',
+      phone: '+201005551234',
       company: 'استوديو',
       notes: 'ملاحظات',
     });

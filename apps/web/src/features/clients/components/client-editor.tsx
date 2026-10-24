@@ -15,6 +15,7 @@ import {
   clientError,
 } from '../services/client-api';
 import type { Client, ClientDetails } from '../services/client-api';
+import { ClientPhoneField } from './client-phone-field';
 export interface EditorSelection {
   client: Client | null;
   archive: boolean;
@@ -206,7 +207,13 @@ export function ClientEditor({
             <div className="client-fields">
               {fields.map(({ key, label, type }) => (
                 <div
-                  className={key === 'notes' ? 'field client-notes' : 'field'}
+                  className={
+                    key === 'notes'
+                      ? 'field client-notes'
+                      : key === 'phone'
+                        ? 'field client-phone'
+                        : 'field'
+                  }
                   key={key}
                 >
                   <label htmlFor={'client-' + key}>
@@ -215,7 +222,13 @@ export function ClientEditor({
                       <span className="optional-label">{t('اختياري')}</span>
                     )}
                   </label>
-                  {key === 'notes' ? (
+                  {key === 'phone' ? (
+                    <ClientPhoneField
+                      key={(client?.id ?? 'new') + ':' + (client?.version ?? 0)}
+                      control={form.control}
+                      readonly={readonly}
+                    />
+                  ) : key === 'notes' ? (
                     <textarea
                       id={'client-' + key}
                       rows={3}
@@ -234,9 +247,7 @@ export function ClientEditor({
                       type={type}
                       readOnly={readonly}
                       autoComplete="off"
-                      dir={
-                        key === 'email' || key === 'phone' ? 'ltr' : undefined
-                      }
+                      dir={key === 'email' ? 'ltr' : undefined}
                       aria-invalid={!!form.formState.errors[key]}
                       aria-describedby={
                         form.formState.errors[key]

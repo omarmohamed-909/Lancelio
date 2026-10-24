@@ -14,9 +14,8 @@ import {
 } from '../src/modules/auth/infrastructure/registration-models.js';
 import { createSessionModel } from '../src/modules/auth/infrastructure/session-model.js';
 import { createConsumedRefreshModel } from '../src/modules/auth/infrastructure/consumed-refresh-model.js';
-import { ManageClients } from '../src/modules/clients/application/manage-clients.js';
+import { createClients } from '../src/main/create-clients.js';
 import { createClientModel } from '../src/modules/clients/infrastructure/client-model.js';
-import { MongoClientStore } from '../src/modules/clients/infrastructure/mongo-client-store.js';
 import { mongoBinaryOptions } from './helpers/mongo-binary.js';
 const origin = 'http://localhost:3000';
 const account = {
@@ -84,7 +83,7 @@ describe('Workspace-scoped client HTTP and Mongo operations', () => {
     await models.User.deleteMany({});
     app = createApp(origin, {
       sessions,
-      clients: new ManageClients(new MongoClientStore(clientModel)),
+      clients: createClients(clientModel),
     });
     await register.execute(account);
     const login = await sessions.login.execute(account);
@@ -109,6 +108,7 @@ describe('Workspace-scoped client HTTP and Mongo operations', () => {
     expect(created.body.data).toMatchObject({
       name: 'سارة علي',
       email: 'sara@example.com',
+      phone: '+201005554444',
       version: 1,
       archivedAt: null,
     });
@@ -139,6 +139,45 @@ describe('Workspace-scoped client HTTP and Mongo operations', () => {
       (await request(app).get('/api/v1/clients').set('Authorization', auth()))
         .body.data.items,
     ).toHaveLength(1);
+  });
+  it('enforces international phone validation on create and update without corrupting existing details', async () => {
+    for (const phone of [
+      '123',
+      '99999999999',
+      '+999123456789',
+      '+201912345678',
+      '+96612345',
+      'hello +442079460018',
+      '+12025550123 ext 5',
+    ]) {
+      const response = await request(app)
+        .post('/api/v1/clients')
+        .set('Authorization', auth())
+        .send({ ...details, phone });
+      expect(response.status).toBe(422);
+      expect(response.body.error.fields.phone).toBeDefined();
+    }
+    expect(await clientModel.countDocuments()).toBe(0);
+    const result = await request(app)
+      .post('/api/v1/clients')
+      .set('Authorization', auth())
+      .send({ ...details, phone: '٠٠٩٦٦٥٥١٢٣٤٥٦٧' });
+    expect(result.status).toBe(201);
+    expect(result.body.data.phone).toBe('+966551234567');
+    const badUpdate = await request(app)
+      .put('/api/v1/clients/' + result.body.data.id)
+      .set('Authorization', auth())
+      .send({ ...details, version: 1, phone: '12345' });
+    expect(badUpdate.status).toBe(422);
+    const unchanged = await clientModel.findById(result.body.data.id).orFail();
+    expect(unchanged.phone).toBe('+966551234567');
+    expect(unchanged.version).toBe(1);
+    const validUpdate = await request(app)
+      .put('/api/v1/clients/' + result.body.data.id)
+      .set('Authorization', auth())
+      .send({ ...details, version: 1, phone: '+44 (20) 7946-0018' });
+    expect(validUpdate.status).toBe(200);
+    expect(validUpdate.body.data.phone).toBe('+442079460018');
   });
   it('hides foreign clients consistently across read, update, archive, list and cursor', async () => {
     const original = (await create()).body.data;

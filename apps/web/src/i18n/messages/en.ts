@@ -164,6 +164,13 @@ export const en = {
   الشركة: 'Company',
   'بريد العميل': 'Client email',
   'رقم الهاتف': 'Phone number',
+  'دولة رقم الهاتف': 'Phone country',
+  'دولي (+)': 'International (+)',
+  'الرقم المحلي': 'National number',
+  'اختار الدولة واكتب الرقم المحلي، أو الصق الرقم الدولي بكود الدولة. الأرقام العربية مدعومة.':
+    'Choose a country and enter the national number, or paste an international number with its country code. Arabic digits are supported.',
+  'اكتب رقم صحيح للدولة المختارة، أو رقم دولي يبدأ بكود الدولة.':
+    'Enter a valid number for the selected country, or an international number with its country code.',
   ملاحظات: 'Notes',
   'العميل اتنقل للأرشيف، وتفاصيله محفوظة.':
     'Client archived. Their details are preserved.',

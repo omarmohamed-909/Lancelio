@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { listOrderSchema } from '../../../shared/schemas/list-order';
+import { normalizeInternationalPhone } from '../services/phone-number';
 export const clientSchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -38,10 +39,10 @@ export const clientFormSchema = z.object({
     .string()
     .trim()
     .refine(
-      (value) =>
-        !value || (/^[+0-9() .-]{3,40}$/u.test(value) && /[0-9]/u.test(value)),
-      'راجع رقم الهاتف (حتى 40 حرف).',
-    ),
+      (value) => normalizeInternationalPhone(value) !== null,
+      'اكتب رقم صحيح للدولة المختارة، أو رقم دولي يبدأ بكود الدولة.',
+    )
+    .transform((value) => normalizeInternationalPhone(value)!),
   company: z
     .string()
     .trim()

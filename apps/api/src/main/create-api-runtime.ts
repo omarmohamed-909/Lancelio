@@ -28,9 +28,8 @@ import { initializeProjectModel } from '../modules/projects/infrastructure/proje
 import { createProposalSharing } from './create-proposal-sharing.js';
 import { createProposals } from './create-proposals.js';
 import { createProposalModel } from '../modules/proposals/infrastructure/proposal-model.js';
-import { ManageClients } from '../modules/clients/application/manage-clients.js';
+import { createClients } from './create-clients.js';
 import { createClientModel } from '../modules/clients/infrastructure/client-model.js';
-import { MongoClientStore } from '../modules/clients/infrastructure/mongo-client-store.js';
 import { createApp } from './create-app.js';
 import { readEnvironment, assistantConfiguration } from './config.js';
 import { checkDatabaseReadiness, connectDatabase } from './database.js';
@@ -93,7 +92,7 @@ export async function createApiRuntime(
     const clientModel = createClientModel(database);
     await clientModel.createCollection();
     await clientModel.createIndexes();
-    const clients = new ManageClients(new MongoClientStore(clientModel));
+    const clients = createClients(clientModel);
     const proposalModel = createProposalModel(database);
     await proposalModel.createCollection();
     await proposalModel.createIndexes();
