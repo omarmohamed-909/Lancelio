@@ -17,6 +17,7 @@ const schema = z.strictObject({
   credential: z.string().min(1).max(16384),
   name: z.string().max(500).optional(),
   workspaceName: z.string().max(500).optional(),
+  locale: z.enum(['ar', 'en']).optional(),
 });
 export function createGoogleAuthRouter(
   webOrigin: string,
@@ -124,6 +125,7 @@ export function createGoogleAuthRouter(
     const result = await services!.signIn.execute({
       credential: data.credential,
       nonce,
+      ...(data.locale !== undefined ? { locale: data.locale } : {}),
       ...(data.name !== undefined ? { name: data.name } : {}),
       ...(data.workspaceName !== undefined
         ? { workspaceName: data.workspaceName }

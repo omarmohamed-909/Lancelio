@@ -22,6 +22,7 @@ export class RegisterAndSignIn {
         email: registration.email,
         workspaceName: registration.workspaceName,
         passwordHash,
+        locale: input.locale ?? 'en',
       },
       async (identity) => {
         const now = this.clock.now();

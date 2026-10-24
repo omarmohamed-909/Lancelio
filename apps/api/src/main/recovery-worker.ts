@@ -3,11 +3,15 @@ import { EnvironmentConfigurationError, readEnvironment } from './config.js';
 import { startRecoveryWorker } from './recovery-worker-loop.js';
 
 async function bootstrap() {
-  if (readEnvironment(process.env).EMAIL_PROVIDER !== 'resend')
+  const configuration = readEnvironment(process.env);
+  if (
+    configuration.EMAIL_PROVIDER !== 'resend' &&
+    !configuration.WELCOME_EMAIL_ENABLED
+  )
     throw new EnvironmentConfigurationError(['EMAIL_PROVIDER']);
-  const { database, recovery } = await createApiRuntime();
-  const worker = startRecoveryWorker(recovery, { keepAlive: true });
-  console.info('Recovery worker is running.');
+  const { database, mailQueue } = await createApiRuntime();
+  const worker = startRecoveryWorker(mailQueue, { keepAlive: true });
+  console.info('Email worker is running.');
   let shuttingDown = false;
   function shutdown() {
     if (shuttingDown) return;

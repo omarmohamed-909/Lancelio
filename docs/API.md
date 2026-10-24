@@ -12,7 +12,7 @@ Replies contain `plan`, nullable `message`, `engine`, `degraded`, nullable `asOf
 
 ## Register
 
-Optional Google authentication uses `GET /api/v1/auth/google/config`, `POST /api/v1/auth/google/challenge` (empty JSON body), and `POST /api/v1/auth/google` (`credential`, optional `name`, `workspaceName`). Both POST routes require the exact trusted Origin. Challenge preparation allows 60 requests/15 minutes/IP; token exchange has a separate 20-request/15-minute/IP budget, so page reloads do not consume sign-in attempts. An ID token must match the browser-bound, single-use nonce. Exchange results are `onboarding-required` or `authenticated`; only the last sets a refresh cookie and returns the usual session credentials. Missing configuration reports `enabled: false`; exchanges return `GOOGLE_UNAVAILABLE` (503). See [Google setup and account behavior](GOOGLE_SIGN_IN.md).
+Optional Google authentication uses `GET /api/v1/auth/google/config`, `POST /api/v1/auth/google/challenge` (empty JSON body), and `POST /api/v1/auth/google` (`credential`, optional `name`, `workspaceName`, `locale`). Both POST routes require the exact trusted Origin. Challenge preparation allows 60 requests/15 minutes/IP; token exchange has a separate 20-request/15-minute/IP budget, so page reloads do not consume sign-in attempts. An ID token must match the browser-bound, single-use nonce. Exchange results are `onboarding-required` or `authenticated`; only the last sets a refresh cookie and returns the usual session credentials. Missing configuration reports `enabled: false`; exchanges return `GOOGLE_UNAVAILABLE` (503). See [Google setup and account behavior](GOOGLE_SIGN_IN.md).
 
 `POST /api/v1/auth/register` with `Content-Type: application/json` and an exact trusted `Origin` matching `WEB_ORIGIN`.
 
@@ -25,7 +25,7 @@ Optional Google authentication uses `GET /api/v1/auth/google/config`, `POST /api
 }
 ```
 
-`workspaceName` is optional and defaults to the trimmed account name.
+`workspaceName` is optional and defaults to the trimmed account name. Optional `locale` is `ar` or `en` and controls only the welcome email language (default English); it grants no permissions. Welcome delivery is optional, asynchronous, and disabled until configured. See [welcome email](WELCOME-EMAIL.md).
 Names have 2–100 characters; password length is 15–128 Unicode code points.
 Email is trimmed/lowercased, conventional ASCII syntax, maximum 254 characters and a 64-character local part.
 Unknown fields, including role, owner, workspace IDs, plan, and passwordHash, are rejected.

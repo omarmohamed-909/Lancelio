@@ -18,6 +18,10 @@ const environmentSchema = z
         .optional(),
     ),
     EMAIL_PROVIDER: z.enum(['disabled', 'resend']).default('disabled'),
+    WELCOME_EMAIL_ENABLED: z
+      .enum(['true', 'false'])
+      .default('false')
+      .transform((value) => value === 'true'),
     RESEND_API_KEY: z.string().optional(),
     EMAIL_FROM: z.string().optional(),
     ASSISTANT_PROVIDER: z
@@ -43,7 +47,10 @@ const environmentSchema = z
           });
       }
     }
-    if (environment.EMAIL_PROVIDER === 'resend') {
+    if (
+      environment.EMAIL_PROVIDER === 'resend' ||
+      environment.WELCOME_EMAIL_ENABLED
+    ) {
       if (!environment.RESEND_API_KEY?.trim())
         context.addIssue({
           code: 'custom',

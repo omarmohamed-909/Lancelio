@@ -170,7 +170,7 @@ The deployment topology is **Vercel frontend + Vercel Express API**. An optional
 
 ## Explore the docs
 
-Google sign-in is prepared as an optional integration, with onboarding and direct account linking for verified Gmail and Google Workspace identities. Enable it with the API's `GOOGLE_CLIENT_ID`: [Google sign-in setup](docs/GOOGLE_SIGN_IN.md).
+Google sign-in is prepared as an optional integration, with onboarding and direct account linking for verified Gmail and Google Workspace identities. Enable it with the API's `GOOGLE_CLIENT_ID`: [Google sign-in setup](docs/GOOGLE_SIGN_IN.md). Optional bilingual welcome messages and the separate Google identity setup are documented in [welcome email setup](docs/WELCOME-EMAIL.md).
 
 | Guide                                                                                                                        | Start here for                                                         |
 | ---------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |

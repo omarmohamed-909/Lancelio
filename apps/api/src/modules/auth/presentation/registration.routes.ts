@@ -10,6 +10,7 @@ const requestSchema = z.strictObject({
   email: z.string(),
   password: z.string(),
   workspaceName: z.string().optional(),
+  locale: z.enum(['ar', 'en']).optional(),
 });
 
 export function createRegistrationRouter(
@@ -59,6 +60,9 @@ export function createRegistrationRouter(
         password: parsed.data.password,
         ...(parsed.data.workspaceName !== undefined
           ? { workspaceName: parsed.data.workspaceName }
+          : {}),
+        ...(parsed.data.locale !== undefined
+          ? { locale: parsed.data.locale }
           : {}),
       };
       const account = await registerAccount.execute(input);

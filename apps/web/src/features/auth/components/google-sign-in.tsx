@@ -88,7 +88,7 @@ export function GoogleSignIn({
       onBusyChange(true);
       setMessage('');
       try {
-        const result = await manager.googleSignIn(data);
+        const result = await manager.googleSignIn({ ...data, locale });
         if (!alive.current) return;
         if (result.kind === 'authenticated') {
           credential.current = '';
@@ -108,7 +108,7 @@ export function GoogleSignIn({
         }
       }
     },
-    [manager, onBusyChange, onFlowChange, router],
+    [manager, onBusyChange, onFlowChange, router, locale],
   );
   const exchangeRef = useRef(exchange);
   useEffect(() => {

@@ -24,5 +24,6 @@ export interface GoogleAccountStore {
     existing: GoogleAccount | null;
     name?: string;
     workspaceName?: string;
+    locale?: 'ar' | 'en';
   }): Promise<{ userId: string; passwordHash: string | null }>;
 }

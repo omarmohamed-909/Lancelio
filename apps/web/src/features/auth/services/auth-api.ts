@@ -27,6 +27,7 @@ export interface GoogleSignInData {
   credential: string;
   name?: string;
   workspaceName?: string;
+  locale?: 'ar' | 'en';
 }
 export type Identity = z.infer<typeof identitySchema>;
 export type Credentials = z.infer<typeof credentialsSchema>;
@@ -37,6 +38,7 @@ export interface LoginData {
 export interface RegistrationData extends LoginData {
   name: string;
   workspaceName?: string;
+  locale?: 'ar' | 'en';
 }
 
 export const authApi = {

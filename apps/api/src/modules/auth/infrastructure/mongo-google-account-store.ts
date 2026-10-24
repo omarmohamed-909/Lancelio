@@ -9,6 +9,7 @@ import type { RegistrationModels } from './registration-models.js';
 import type { GoogleChallengeModel } from './google-challenge-model.js';
 import type { SessionModel } from './session-model.js';
 import type { RecoveryModels } from './recovery-models.js';
+import { newWelcomeEmail } from './welcome-email-model.js';
 
 const digest = (nonce: string) =>
   createHash('sha256').update(nonce).digest('hex');
@@ -18,6 +19,7 @@ export class MongoGoogleAccountStore implements GoogleAccountStore {
     private readonly challenges: GoogleChallengeModel,
     private readonly sessions: SessionModel,
     private readonly jobs: RecoveryModels['Job'],
+    private readonly welcomeEnabled = false,
   ) {}
   async challenge(nonce: string, expiresAt: Date) {
     await this.challenges.create({ _id: digest(nonce), expiresAt });
@@ -117,6 +119,17 @@ export class MongoGoogleAccountStore implements GoogleAccountStore {
             googleSubject: input.profile.subject,
             emailVerified: true,
             passwordHash: null,
+            ...(this.welcomeEnabled
+              ? {
+                  welcomeEmail: newWelcomeEmail(
+                    input.name,
+                    input.profile.email,
+                    input.workspaceName,
+                    input.locale ?? 'en',
+                    input.now,
+                  ),
+                }
+              : {}),
           });
           await user.save({ session });
           const workspaceId = new Types.ObjectId();

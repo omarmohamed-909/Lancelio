@@ -1,5 +1,6 @@
 import { Schema } from 'mongoose';
 import type { Connection } from 'mongoose';
+import { welcomeEmailSchema } from './welcome-email-model.js';
 
 const userSchema = new Schema(
   {
@@ -22,10 +23,15 @@ const userSchema = new Schema(
     profileVersion: { type: Number, default: 0, min: 0 },
     passwordChangedAt: { type: Date, default: null },
     emailVerified: { type: Boolean, default: false, required: true },
+    welcomeEmail: { type: welcomeEmailSchema, default: null, select: false },
   },
   { timestamps: true, strict: 'throw' },
 );
 userSchema.index({ email: 1 }, { unique: true });
+userSchema.index(
+  { 'welcomeEmail.state': 1, 'welcomeEmail.nextAttemptAt': 1 },
+  { partialFilterExpression: { 'welcomeEmail.state': 'pending' } },
+);
 userSchema.pre('validate', function () {
   if (this.isNew && !this.passwordHash && !this.googleSubject)
     this.invalidate('passwordHash', 'An authentication method is required');

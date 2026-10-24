@@ -99,6 +99,56 @@ describe('Vercel request lifecycle', () => {
     expect(failed.text).not.toContain('MONGODB_URI');
   });
 
+  it('returns the response before welcome delivery completes and schedules bounded background work', async () => {
+    let finish!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      finish = resolve;
+    });
+    const afterResponse = vi.fn(async () => {
+      await gate;
+    });
+    const background: Promise<void>[] = [];
+    const inner = express().get('/signup', (_request, response) =>
+      response.status(201).json({ created: true }),
+    );
+    const app = express().use(
+      createServerlessHandler(
+        async () => ({ app: inner, afterResponse }),
+        (work) => {
+          background.push(work);
+        },
+      ),
+    );
+    expect((await request(app).get('/signup')).status).toBe(201);
+    expect(afterResponse).toHaveBeenCalledTimes(1);
+    expect(background).toHaveLength(1);
+    finish();
+    await Promise.all(background);
+  });
+  it('keeps background delivery failures outside the successful HTTP response and redacts logs', async () => {
+    const log = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const background: Promise<void>[] = [];
+    const inner = express().get('/signup', (_request, response) =>
+      response.sendStatus(201),
+    );
+    const app = express().use(
+      createServerlessHandler(
+        async () => ({
+          app: inner,
+          afterResponse: async () => {
+            throw new Error('private-mailer-detail');
+          },
+        }),
+        (work) => {
+          background.push(work);
+        },
+      ),
+    );
+    expect((await request(app).get('/signup')).status).toBe(201);
+    await Promise.all(background);
+    expect(JSON.stringify(log.mock.calls)).not.toContain('private-');
+    expect(log).toHaveBeenCalledTimes(1);
+  });
   const configuration = {
     NODE_ENV: 'development',
     WEB_ORIGIN: 'https://app.example.com',

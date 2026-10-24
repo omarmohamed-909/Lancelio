@@ -9,6 +9,8 @@ import type { AccountSummary } from '../domain/registration.js';
 import type { RegistrationModels } from './registration-models.js';
 import type { RegistrationSessionStore } from '../application/ports/registration-session-store.js';
 import type { SessionModel } from './session-model.js';
+import { newWelcomeEmail } from './welcome-email-model.js';
+import type { Clock } from '../application/ports/session-tokens.js';
 
 export class MongoRegistrationStore
   implements RegistrationStore, RegistrationSessionStore
@@ -17,6 +19,8 @@ export class MongoRegistrationStore
     private readonly connection: Connection,
     private readonly models: RegistrationModels,
     private readonly sessions?: SessionModel,
+    private readonly welcomeEnabled = false,
+    private readonly clock: Clock = { now: () => new Date() },
   ) {}
 
   async createOwnerAccount(account: NewOwnerAccount): Promise<AccountSummary> {
@@ -61,6 +65,17 @@ export class MongoRegistrationStore
             name: account.name,
             email: account.email,
             passwordHash: account.passwordHash,
+            ...(this.welcomeEnabled
+              ? {
+                  welcomeEmail: newWelcomeEmail(
+                    account.name,
+                    account.email,
+                    account.workspaceName,
+                    account.locale ?? 'en',
+                    this.clock.now(),
+                  ),
+                }
+              : {}),
           });
           await user.save({ session });
 

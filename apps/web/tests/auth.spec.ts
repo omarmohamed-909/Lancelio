@@ -339,8 +339,14 @@ test('register, real identity, logout, unauthorized redirect, and login', async 
     if (new URL(request.url()).pathname.endsWith('/auth/login'))
       passwordLoginCalls++;
   });
+  const signupLocales: unknown[] = [];
+  page.on('request', (request) => {
+    if (new URL(request.url()).pathname.endsWith('/auth/register'))
+      signupLocales.push(request.postDataJSON()?.locale);
+  });
   await register(page);
   expect(passwordLoginCalls).toBe(0);
+  expect(signupLocales).toEqual(['ar']);
   expect(await sessionModel.countDocuments()).toBe(1);
   await page.reload();
   await expect(page).toHaveURL('/dashboard');

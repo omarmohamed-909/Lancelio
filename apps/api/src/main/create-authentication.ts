@@ -20,6 +20,7 @@ export async function createAuthentication(
   signingSecret: string,
   secureCookies: boolean,
   clock: Clock = { now: () => new Date() },
+  welcomeEnabled = false,
 ) {
   const store = new MongoSessionStore(models, sessions);
   const tokens = new JoseSessionTokens(signingSecret);
@@ -30,7 +31,13 @@ export async function createAuthentication(
   const refreshStore = new MongoRefreshSessionStore(sessions, consumed);
   return {
     register: new RegisterAndSignIn(
-      new MongoRegistrationStore(models.User.db, models, sessions),
+      new MongoRegistrationStore(
+        models.User.db,
+        models,
+        sessions,
+        welcomeEnabled,
+        clock,
+      ),
       new Argon2PasswordHasher(),
       tokens,
       clock,

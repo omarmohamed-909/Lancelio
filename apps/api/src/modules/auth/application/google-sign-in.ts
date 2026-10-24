@@ -22,6 +22,7 @@ export class GoogleSignIn {
     nonce: string;
     name?: string;
     workspaceName?: string;
+    locale?: 'ar' | 'en';
   }) {
     const now = this.clock.now();
     const profile = await this.verifier.verify(
@@ -74,6 +75,7 @@ export class GoogleSignIn {
       now,
       profile,
       existing: account,
+      locale: input.locale ?? 'en',
       ...(name !== undefined ? { name } : {}),
       ...(workspaceName !== undefined ? { workspaceName } : {}),
     });

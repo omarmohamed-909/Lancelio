@@ -35,6 +35,7 @@ const providerSources = [
   },
   { label: 'Google Gemini', href: 'https://ai.google.dev/gemini-api/terms' },
   { label: 'Google', href: 'https://policies.google.com/privacy' },
+  { label: 'Resend', href: 'https://resend.com/legal/privacy-policy' },
   { label: 'OpenAI', href: 'https://openai.com/enterprise-privacy/' },
 ];
 
@@ -77,7 +78,7 @@ export const legalContent: Record<
           bullets: [
             'إنشاء المستندات والروابط التي تطلب مشاركتها، وعرض التقدم والمستحقات.',
             'حفظ تفضيلات الواجهة، مثل اللغة والمظهر وطريقة عرض القوائم.',
-            'التعامل مع رسائل الدعم وطلبات الخصوصية واستعادة الوصول إلى الحساب عند توفر خدمة البريد.',
+            'التعامل مع رسائل الدعم وطلبات الخصوصية واستعادة الوصول إلى الحساب، وإرسال رسالة ترحيب واحدة للحساب الجديد عند تفعيل خدمة البريد.',
           ],
         },
         {
@@ -85,7 +86,7 @@ export const legalContent: Record<
           title: 'المشاركة والخدمات الخارجية',
           paragraphs: [
             'تكون سجلات مساحة العمل متاحة للمستخدمين المخوّلين داخلها. إذا أنشأت رابط مشاركة، فقد يتمكن أي شخص يحصل عليه من مشاهدة المعلومات التي أتاحها الرابط. راجع المحتوى وصلاحية المشاركة قبل إرساله، وألغِ الرابط عندما لا تعود بحاجة إليه.',
-            'تعتمد الاستضافة على Vercel، وتُحفظ بيانات التطبيق في MongoDB Atlas. وقد نستخدم مزوّد بريد عند تفعيل إرسال الرسائل. قد تُعالج البيانات خارج بلدك بحسب مواقع تشغيل هذه الخدمات وإعداداتها. تختلف سياسات المزوّدين عن هذه السياسة؛ الروابط التالية تتيح مراجعتها.',
+            'تعتمد الاستضافة على Vercel، وتُحفظ بيانات التطبيق في MongoDB Atlas. وقد نستخدم Resend عند تفعيل البريد لإرسال رسائل الترحيب واسترجاع الحساب. يتلقى مزوّد البريد عنوان المستلم ومحتوى الرسالة؛ وقد يتضمن المحتوى اسمك واسم مساحة العمل. قد تُعالج البيانات خارج بلدك بحسب مواقع تشغيل هذه الخدمات وإعداداتها. تختلف سياسات المزوّدين عن هذه السياسة؛ الروابط التالية تتيح مراجعتها.',
           ],
           sources: providerSources,
         },
@@ -313,7 +314,7 @@ export const legalContent: Record<
           bullets: [
             'Creating documents and links you choose to share, and displaying progress and outstanding payments.',
             'Remembering interface preferences such as language, appearance, and list settings.',
-            'Handling support messages, privacy requests, and account recovery when email delivery is enabled.',
+            'Handling support messages, privacy requests, account recovery, and a single welcome message for new accounts when email delivery is enabled.',
           ],
         },
         {
@@ -321,7 +322,7 @@ export const legalContent: Record<
           title: 'Sharing and external services',
           paragraphs: [
             'Workspace records are available to authorized users in that workspace. If you create a sharing link, anyone who obtains it may be able to view the information it exposes. Review the content and sharing permissions before sending it, and revoke the link when it is no longer needed.',
-            'Hosting uses Vercel, and application data is stored in MongoDB Atlas. An email provider may be used when delivery is enabled. Information may be processed outside your country depending on provider locations and settings. Provider policies differ from this policy; they can be reviewed using the links below.',
+            'Hosting uses Vercel, and application data is stored in MongoDB Atlas. Resend may be used for welcome and recovery messages when email delivery is enabled. The email provider receives the recipient address and message content, which may include your name and workspace name. Information may be processed outside your country depending on provider locations and settings. Provider policies differ from this policy; they can be reviewed using the links below.',
           ],
           sources: providerSources,
         },

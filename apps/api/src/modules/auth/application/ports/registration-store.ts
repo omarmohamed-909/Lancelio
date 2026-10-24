@@ -5,6 +5,7 @@ export interface NewOwnerAccount {
   readonly email: string;
   readonly passwordHash: string;
   readonly workspaceName: string;
+  readonly locale?: 'ar' | 'en';
 }
 
 export interface RegistrationStore {

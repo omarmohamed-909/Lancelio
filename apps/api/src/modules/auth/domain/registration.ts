@@ -12,6 +12,7 @@ export interface RegistrationInput {
   readonly email: string;
   readonly password: string;
   readonly workspaceName?: string;
+  readonly locale?: 'ar' | 'en';
 }
 
 export interface AccountSummary {

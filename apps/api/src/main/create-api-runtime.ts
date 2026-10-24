@@ -33,6 +33,9 @@ import { readEnvironment, assistantConfiguration } from './config.js';
 import { checkDatabaseReadiness, connectDatabase } from './database.js';
 import { createAuthentication } from './create-authentication.js';
 import { createGoogleAuthentication } from './create-google-authentication.js';
+import { WelcomeEmail } from '../modules/auth/application/welcome-email.js';
+import { MongoWelcomeStore } from '../modules/auth/infrastructure/mongo-welcome-store.js';
+import { ResendWelcomeMailer } from '../modules/auth/infrastructure/resend-welcome-mailer.js';
 import { createProfile } from './create-profile.js';
 import { createWorkspaceSettings } from './create-workspace-settings.js';
 import { createSessionModel } from '../modules/auth/infrastructure/session-model.js';
@@ -57,6 +60,19 @@ export async function createApiRuntime(
       sessionModel,
       environment.JWT_ACCESS_SECRET,
       environment.NODE_ENV === 'production',
+      undefined,
+      environment.WELCOME_EMAIL_ENABLED,
+    );
+    const welcome = new WelcomeEmail(
+      new MongoWelcomeStore(models.User),
+      environment.WELCOME_EMAIL_ENABLED
+        ? new ResendWelcomeMailer(
+            environment.RESEND_API_KEY!,
+            environment.EMAIL_FROM!,
+            environment.WEB_ORIGIN,
+          )
+        : null,
+      { now: () => new Date() },
     );
     const recovery = await createPasswordRecovery(
       models.User,
@@ -137,6 +153,8 @@ export async function createApiRuntime(
               environment.JWT_ACCESS_SECRET,
               environment.GOOGLE_CLIENT_ID,
               environment.NODE_ENV === 'production',
+              undefined,
+              environment.WELCOME_EMAIL_ENABLED,
             ),
           }
         : {}),
@@ -180,7 +198,27 @@ export async function createApiRuntime(
       passwordRecovery: recovery.service,
       sessions,
     });
-    return { app, database, recovery: recovery.service, environment };
+    return {
+      app,
+      database,
+      recovery: recovery.service,
+      welcome,
+      environment,
+      ...(environment.WELCOME_EMAIL_ENABLED
+        ? {
+            afterResponse: async () => {
+              await welcome.deliverNext();
+            },
+          }
+        : {}),
+      mailQueue: {
+        deliverNext: async () => {
+          const recovered = await recovery.service.deliverNext();
+          const welcomed = await welcome.deliverNext();
+          return recovered || welcomed;
+        },
+      },
+    };
   } catch (error: unknown) {
     await database.close();
     throw error;

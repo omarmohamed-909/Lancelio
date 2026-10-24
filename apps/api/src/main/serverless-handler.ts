@@ -2,9 +2,13 @@ import type { RequestHandler } from 'express';
 import { EnvironmentConfigurationError } from './config.js';
 
 export function createServerlessHandler(
-  load: () => Promise<{ app: RequestHandler }>,
+  load: () => Promise<{
+    app: RequestHandler;
+    afterResponse?: () => Promise<void>;
+  }>,
+  scheduleBackground?: (work: Promise<void>) => void,
 ): RequestHandler {
-  let runtime: Promise<{ app: RequestHandler }> | null = null;
+  let runtime: ReturnType<typeof load> | null = null;
   return async (request, response, next) => {
     if (!runtime)
       runtime = Promise.resolve()
@@ -19,7 +23,7 @@ export function createServerlessHandler(
           );
           throw error;
         });
-    let ready: { app: RequestHandler };
+    let ready: Awaited<ReturnType<typeof load>>;
     try {
       ready = await runtime;
     } catch {
@@ -30,6 +34,25 @@ export function createServerlessHandler(
         .json({ success: false, error: { code: 'SERVICE_UNAVAILABLE' } });
       return;
     }
-    if (!response.destroyed) ready.app(request, response, next);
+    if (!response.destroyed) {
+      if (ready.afterResponse && scheduleBackground) {
+        const afterResponse = ready.afterResponse;
+        const done = new Promise<void>((resolve) => {
+          response.once('finish', resolve);
+          response.once('close', resolve);
+        });
+        const work = done.then(afterResponse).catch(() => {
+          console.error(
+            'Welcome queue processing failed; a later request can retry.',
+          );
+        });
+        try {
+          scheduleBackground(work);
+        } catch {
+          console.error('Welcome background scheduling unavailable.');
+        }
+      }
+      ready.app(request, response, next);
+    }
   };
 }

@@ -15,6 +15,7 @@ export async function createGoogleAuthentication(
   clientId: string,
   secureCookies: boolean,
   verifier: GoogleTokenVerifier = new JoseGoogleTokenVerifier(clientId),
+  welcomeEnabled = false,
 ) {
   const challenges = createGoogleChallengeModel(models.User.db);
   await challenges.createCollection();
@@ -26,6 +27,7 @@ export async function createGoogleAuthentication(
     challenges,
     sessions,
     recovery.Job,
+    welcomeEnabled,
   );
   return {
     clientId,

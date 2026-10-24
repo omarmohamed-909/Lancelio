@@ -70,6 +70,7 @@ describe('Google sign-in and account integrity', () => {
       clientId,
       false,
       verifier,
+      true,
     );
     register = new RegisterAccount(
       new MongoRegistrationStore(database, models),
@@ -146,6 +147,7 @@ describe('Google sign-in and account integrity', () => {
     const result = await exchange(flow, {
       name: 'My Local Name',
       workspaceName: 'My Studio',
+      locale: 'ar',
     });
     expect(result.status).toBe(200);
     return { flow, result };
@@ -282,6 +284,14 @@ describe('Google sign-in and account integrity', () => {
     expect(user.passwordHash).toBeNull();
     expect(user.googleSubject).toBe('subject-one');
     expect(
+      (await models.User.findById(user._id).select('+welcomeEmail').orFail())
+        .welcomeEmail,
+    ).toMatchObject({ state: 'pending', language: 'ar' });
+    await models.User.updateOne(
+      { _id: user._id },
+      { $set: { 'welcomeEmail.state': 'sent' } },
+    );
+    expect(
       (
         await request(app)
           .post('/api/v1/auth/login')
@@ -314,6 +324,10 @@ describe('Google sign-in and account integrity', () => {
     const returning = await exchange(await begin());
     expect(returning.status).toBe(200);
     expect(returning.body.data.user.id).toBe(user.id);
+    expect(
+      (await models.User.findById(user._id).select('+welcomeEmail').orFail())
+        .welcomeEmail?.state,
+    ).toBe('sent');
     expect(await models.User.countDocuments()).toBe(1);
     expect(await models.Workspace.countDocuments()).toBe(1);
     expect(await models.Membership.countDocuments()).toBe(1);
@@ -352,6 +366,10 @@ describe('Google sign-in and account integrity', () => {
     expect(user.passwordHash).toBe(oldHash);
     expect(user.emailVerified).toBe(true);
     expect(user.passwordLoginNeedsVerification).toBe(true);
+    expect(
+      (await models.User.findById(user._id).select('+welcomeEmail').orFail())
+        .welcomeEmail,
+    ).toBeNull();
     expect(
       (
         await request(app)

@@ -7,3 +7,5 @@ coverage
 package-lock.json
 docs/reference
 **/next-env.d.ts
+# Keep Google's downloaded ownership challenge unchanged.
+apps/web/public/google385212f48908aef7.html

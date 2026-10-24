@@ -3,7 +3,7 @@ import { EnvironmentConfigurationError } from './config.js';
 import { startRecoveryWorker } from './recovery-worker-loop.js';
 
 async function bootstrap() {
-  const { app, database, recovery, environment } = await createApiRuntime();
+  const { app, database, mailQueue, environment } = await createApiRuntime();
   let server: ReturnType<typeof app.listen>;
   try {
     server = app.listen(environment.PORT, () => {
@@ -13,7 +13,7 @@ async function bootstrap() {
     await database.close();
     throw error;
   }
-  const worker = startRecoveryWorker(recovery);
+  const worker = startRecoveryWorker(mailQueue);
   server.once('error', () => {
     console.error('API could not listen. Check the configured port.');
     void worker

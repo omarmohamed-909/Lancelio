@@ -189,7 +189,7 @@ export function LoginForm() {
 }
 
 export function RegisterForm() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const hydrated = useHydrated();
   const { manager, snapshot } = useSession();
   const router = useRouter();
@@ -216,6 +216,7 @@ export function RegisterForm() {
         name: values.name,
         email: values.email,
         password: values.password,
+        locale,
         ...(values.workspaceName
           ? { workspaceName: values.workspaceName }
           : {}),
