@@ -3,12 +3,14 @@ import { landingEn } from './landing';
 import { legalEn } from './legal';
 import { pwaEn } from './pwa';
 import { googleAuthEn } from './google-auth';
+import { connectionsEn } from './connections';
 export const en = {
   ...assistantEn,
   ...landingEn,
   ...legalEn,
   ...pwaEn,
   ...googleAuthEn,
+  ...connectionsEn,
   'تم تحديث حالة المشروع إلى «{0}».': 'Project status updated to “{0}”.',
   'دفتر العملاء | Lancelio': 'Clients | Lancelio',
   'بوابة العميل | Lancelio': 'Client portal | Lancelio',

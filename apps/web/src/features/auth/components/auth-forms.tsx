@@ -1,5 +1,6 @@
 'use client';
 import { useI18n } from '../../../i18n/language-provider';
+import { afterSignInPath } from '../services/invitation-return';
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -64,14 +65,14 @@ export function LoginForm() {
     formState: { errors, isSubmitting },
   } = useForm<LoginValues>({ resolver: zodResolver(loginSchema) });
   useEffect(() => {
-    if (snapshot.status === 'authenticated') router.replace('/dashboard');
+    if (snapshot.status === 'authenticated') router.replace(afterSignInPath());
   }, [snapshot.status, router]);
 
   const submit = async (values: LoginValues) => {
     setMessage('');
     try {
       await manager.login(values);
-      router.replace('/dashboard');
+      router.replace(afterSignInPath());
     } catch (error: unknown) {
       setMessage(errorMessage(error));
     }
@@ -207,7 +208,7 @@ export function RegisterForm() {
     defaultValues: { workspaceName: '' },
   });
   useEffect(() => {
-    if (snapshot.status === 'authenticated') router.replace('/dashboard');
+    if (snapshot.status === 'authenticated') router.replace(afterSignInPath());
   }, [snapshot.status, router]);
   const submit = async (values: RegisterValues) => {
     setMessage('');
@@ -221,7 +222,7 @@ export function RegisterForm() {
           ? { workspaceName: values.workspaceName }
           : {}),
       });
-      router.replace('/dashboard');
+      router.replace(afterSignInPath());
     } catch (error: unknown) {
       setMessage(errorMessage(error));
     }

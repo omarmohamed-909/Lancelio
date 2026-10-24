@@ -1,0 +1,228 @@
+.connections-screen {
+  max-width: 1160px;
+  margin-inline: auto;
+  width: 100%;
+}
+.connections-context {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px 24px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--surface-soft);
+  margin-bottom: 32px;
+  color: var(--ink);
+}
+.connections-context > svg {
+  flex-shrink: 0;
+  color: var(--green);
+}
+.connections-context p {
+  margin: 0;
+  flex: 1;
+  color: var(--muted);
+  line-height: 1.8;
+}
+.connections-context a {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.connection-section {
+  margin-block: 32px;
+}
+.connection-section-title {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-block-end: 18px;
+}
+.connection-section-title h2 {
+  margin: 0;
+  font-size: 21px;
+}
+.connection-count,
+.connection-nav-count {
+  display: grid;
+  place-items: center;
+  border-radius: 20px;
+  min-width: 26px;
+  height: 26px;
+  padding-inline: 6px;
+  background: var(--mint);
+  color: var(--forest);
+  font-size: 13px;
+}
+.connection-nav-count {
+  margin-inline-start: auto;
+  background: #d7ecb9;
+  color: #173d30;
+}
+.connections-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+  gap: 20px;
+}
+.connection-card {
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: var(--surface);
+  padding: 26px;
+  box-shadow: var(--shadow-paper);
+  overflow-wrap: anywhere;
+}
+.connection-card.is-invitation {
+  border-block-start: 3px solid #e79a45;
+}
+.connection-card h3 {
+  font-size: 24px;
+  line-height: 1.5;
+  margin-block: 16px 8px;
+}
+.connection-card p {
+  color: var(--muted);
+  line-height: 1.9;
+}
+.connection-card time {
+  font-size: 13px;
+  color: var(--muted);
+}
+.connection-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-block-start: 22px;
+}
+.connection-actions .button,
+.connection-actions .text-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.connection-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--green);
+  font-size: 13px;
+}
+.connection-status > span {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--green);
+}
+.connections-empty {
+  border: 1px dashed var(--line);
+  border-radius: 24px;
+  padding: 44px 24px;
+  text-align: center;
+  background: var(--surface);
+}
+.connections-empty h3 {
+  font-size: 23px;
+}
+.connections-empty p {
+  max-width: 540px;
+  margin-inline: auto;
+  line-height: 1.9;
+  color: var(--muted);
+}
+.connection-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 58px;
+  height: 58px;
+  border-radius: 18px;
+  background: var(--surface-soft);
+  color: var(--green);
+  flex-shrink: 0;
+}
+.connection-signin {
+  max-width: 600px;
+  margin: 10dvh auto;
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 20px;
+}
+.connection-signin h1 {
+  font-size: clamp(30px, 6vw, 44px);
+  line-height: 1.6;
+  margin: 0;
+}
+.connection-signin p {
+  color: var(--muted);
+  line-height: 1.9;
+}
+.client-invitation-panel {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  padding: clamp(20px, 3vw, 32px);
+  margin-block: 24px;
+}
+.client-invitation-panel > p {
+  color: var(--muted);
+  line-height: 1.9;
+}
+.invitation-recipient {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 14px;
+  background: var(--surface-soft);
+  border-radius: 12px;
+  padding: 16px;
+  margin-block: 20px;
+  overflow-wrap: anywhere;
+}
+.invitation-recipient > span:first-child {
+  font-size: 13px;
+  color: var(--muted);
+}
+.connection-scope {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+.connection-scope svg {
+  flex-shrink: 0;
+  margin-block-start: 6px;
+}
+.connection-portal-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 18px;
+  margin-block-end: 24px;
+}
+@media (max-width: 600px) {
+  .connections-context {
+    align-items: flex-start;
+    flex-wrap: wrap;
+    padding: 18px;
+  }
+  .connections-context a {
+    width: 100%;
+  }
+  .connection-card {
+    padding: 22px;
+  }
+  .connection-actions .button {
+    flex: 1;
+  }
+  .connection-section-title h2 {
+    font-size: 19px;
+  }
+  .connection-signin {
+    margin-block: 4dvh;
+  }
+}

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useI18n } from '../../../i18n/language-provider';
 import { authApi, errorMessage } from '../services/auth-api';
+import { afterSignInPath } from '../services/invitation-return';
 import type { GoogleSignInData } from '../services/auth-api';
 import { displayNameSchema } from '../schemas/forms';
 import { useSession } from './session-provider';
@@ -92,7 +93,7 @@ export function GoogleSignIn({
         if (!alive.current) return;
         if (result.kind === 'authenticated') {
           credential.current = '';
-          router.replace('/dashboard');
+          router.replace(afterSignInPath());
         } else {
           setStep(result);
           onFlowChange(true);

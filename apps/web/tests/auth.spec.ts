@@ -10,6 +10,8 @@ import { createNotifications } from '../../api/src/main/create-notifications.js'
 import { createNotificationStateModel } from '../../api/src/modules/notifications/infrastructure/notification-state-model.js';
 import { formatOverviewMoney } from '../src/features/dashboard/utils/format-overview-money';
 import { createPortal } from '../../api/src/main/create-portal.js';
+import { createClientAccess } from '../../api/src/main/create-client-access.js';
+import { createClientAccessModel } from '../../api/src/modules/portal/infrastructure/client-access-model.js';
 import { createPortalModel } from '../../api/src/modules/portal/infrastructure/portal-model.js';
 import { createDashboard } from '../../api/src/main/create-dashboard.js';
 import { createSearch } from '../../api/src/main/create-search.js';
@@ -63,6 +65,7 @@ import { mongoBinaryOptions } from '../../api/tests/helpers/mongo-binary.js';
 
 let notificationStates: ReturnType<typeof createNotificationStateModel>;
 let portalModel: ReturnType<typeof createPortalModel>;
+let clientAccessModel: ReturnType<typeof createClientAccessModel>;
 let paymentModel: ReturnType<typeof createPaymentLedgerModel>;
 let invoiceModels: ReturnType<typeof createInvoiceModels>;
 let replica: MongoMemoryReplSet;
@@ -113,6 +116,9 @@ test.beforeAll(async () => {
   portalModel = createPortalModel(database);
   await portalModel.createCollection();
   await portalModel.createIndexes();
+  clientAccessModel = createClientAccessModel(database);
+  await clientAccessModel.createCollection();
+  await clientAccessModel.createIndexes();
   paymentModel = createPaymentLedgerModel(database);
   await paymentModel.createCollection();
   await paymentModel.createIndexes();
@@ -178,6 +184,7 @@ test.beforeEach(async () => {
   shareNow = new Date();
   await notificationStates.deleteMany({});
   await portalModel.deleteMany({});
+  await clientAccessModel.deleteMany({});
   await paymentModel.deleteMany({});
   await invoiceModels.Invoice.deleteMany({});
   await invoiceModels.Counter.deleteMany({});
@@ -191,6 +198,22 @@ test.beforeEach(async () => {
   await models.Workspace.deleteMany({});
   await models.User.deleteMany({});
   const app = createApp(testOrigin, {
+    clientAccess: createClientAccess(
+      database,
+      clientAccessModel,
+      portalModel,
+      {
+        users: models.User.collection.name,
+        clients: clientModel.collection.name,
+        workspaces: models.Workspace.collection.name,
+        projects: projectModel.collection.name,
+        tasks: taskBoardModel.collection.name,
+        invoices: invoiceModels.Invoice.collection.name,
+        payments: paymentModel.collection.name,
+      },
+      null,
+      () => shareNow,
+    ),
     assistant: createAssistant(
       database,
       {
@@ -6201,6 +6224,96 @@ async function issuePortal(page: Page, renew = false) {
   await expect(page.locator('#portal-link')).toBeVisible();
   return page.locator('#portal-link').inputValue();
 }
+test('ACC-001 real client invitation keeps owner workspace and revokes access immediately', async ({
+  page,
+  browser,
+}) => {
+  await register(page);
+  const owner = await models.Workspace.findOne({
+    name: account.workspaceName,
+  }).orFail();
+  const invited = {
+    name: 'عمر العميل',
+    email: 'invited-client@example.com',
+    password: 'a secure invited client passphrase',
+    workspaceName: 'مساحة عمر الخاصة',
+  };
+  await registerAccount.execute(invited);
+  const clientAccount = await models.User.findOne({
+    email: invited.email,
+  }).orFail();
+  const target = await clients.create(String(owner._id), {
+    name: invited.name,
+    email: invited.email,
+    phone: '',
+    company: '',
+    notes: 'PRIVATE CLIENT NOTE',
+  });
+  await createProjects(database, projectModel, clientModel).create(
+    String(owner._id),
+    { clientId: target.id, title: 'مشروع العميل المدعو', summary: 'شغل مشترك' },
+  );
+  await page.goto('/clients/' + target.id + '/portal');
+  await page
+    .getByLabel('راجعت معاينة البوابة والبريد المدعو وموافق أشاركهم')
+    .check();
+  await page
+    .getByRole('button', { name: 'إرسال دعوة للعميل', exact: true })
+    .click();
+  await respondToAppConfirmation(page, (dialog) => dialog.accept());
+  await expect(page.locator('#account-invitation-link')).toBeVisible();
+  const link = await page.locator('#account-invitation-link').inputValue();
+  const recipientContext = await browser.newContext({ locale: 'ar-EG' });
+  try {
+    const recipient = await recipientContext.newPage();
+    await recipient.goto(link);
+    await recipient
+      .getByRole('link', { name: 'تسجيل الدخول', exact: true })
+      .click();
+    await recipient
+      .getByLabel('البريد الإلكتروني', { exact: true })
+      .fill(invited.email);
+    await recipient
+      .getByLabel('كلمة المرور', { exact: true })
+      .fill(invited.password);
+    await recipient
+      .getByRole('button', { name: 'دخول لمساحتك', exact: true })
+      .click();
+    await expect(recipient).toHaveURL('/connections');
+    await recipient
+      .getByRole('button', { name: 'قبول الدعوة', exact: true })
+      .click();
+    await recipient
+      .getByRole('link', { name: 'فتح بوابة المتابعة', exact: true })
+      .click();
+    await expect(
+      recipient.getByRole('heading', { name: 'مشروع العميل المدعو' }),
+    ).toBeVisible();
+    await expect(
+      recipient.getByText(invited.workspaceName, { exact: true }),
+    ).toBeVisible();
+    await expect(recipient.locator('.portal-document')).not.toContainText(
+      'PRIVATE',
+    );
+    expect(
+      await models.Membership.countDocuments({ user: clientAccount._id }),
+    ).toBe(1);
+    await page
+      .getByRole('button', { name: 'إلغاء وصول الحساب', exact: true })
+      .click();
+    await respondToAppConfirmation(page, (dialog) => dialog.accept());
+    await expect(
+      page.getByText('وصول العميل اتلغى.', { exact: true }),
+    ).toBeVisible();
+    await recipient.reload();
+    await expect(
+      recipient.locator('.connections-screen').getByRole('alert'),
+    ).toContainText('الدعوة غير متاحة');
+    await expect(recipient.locator('.portal-document')).toHaveCount(0);
+  } finally {
+    await recipientContext.close();
+  }
+});
 test('PRT-001 reviewed portal shares real work, visible tasks and balances without private details', async ({
   page,
   context,

@@ -7,6 +7,7 @@ import './auth.css';
 import './workspace.css';
 import './dashboard.css';
 import './portal.css';
+import './connections.css';
 import './notifications.css';
 import './settings.css';
 import './clients.css';

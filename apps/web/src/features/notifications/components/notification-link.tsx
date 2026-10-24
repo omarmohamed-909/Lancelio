@@ -211,6 +211,9 @@ function NotificationPreview({
         </p>
       </div>
       <div className="notification-preview-footer">
+        <Link href="/connections" onClick={close}>
+          {t('دعوات في انتظارك')} <ArrowUpLeft size={17} aria-hidden="true" />
+        </Link>
         <Link href="/notifications" onClick={close}>
           {t('عرض كل الإشعارات')} <ArrowUpLeft size={17} aria-hidden="true" />
         </Link>

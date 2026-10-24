@@ -250,6 +250,18 @@ export class MongoPortalStore implements PortalStore {
       await session.endSession();
     }
   }
+  async readForAccount(
+    workspaceId: string,
+    clientId: string,
+    now: Date,
+    cursors: PortalCursors,
+    session: mongo.ClientSession,
+  ) {
+    const client = await this.client(workspaceId, clientId, session);
+    return client && client.archivedAt == null
+      ? this.page(workspaceId, client, now, cursors, session)
+      : null;
+  }
   private async page(
     workspaceId: string,
     client: ClientRow,

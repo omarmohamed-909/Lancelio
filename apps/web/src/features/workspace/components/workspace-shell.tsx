@@ -4,6 +4,7 @@ import { useI18n } from '../../../i18n/language-provider';
 import type { ReactNode } from 'react';
 import { NotificationProvider } from '../../notifications/components/notification-provider';
 import { NotificationLink } from '../../notifications/components/notification-link';
+import { ConnectionsLink } from '../../portal/components/connections-link';
 import { WorkspaceActions } from './workspace-actions';
 import { ThemeToggle } from '../../../components/theme/theme-toggle';
 import { LanguageSelect } from '../../../components/language/language-select';
@@ -171,6 +172,7 @@ function AuthenticatedWorkspace({
           </div>
           <span className="nav-label">{t('أدوات العمل')}</span>
           <nav aria-label={t('التنقل الرئيسي')}>
+            <ConnectionsLink onNavigate={closeMenu} />
             <Link
               className={`nav-item${pathname === '/dashboard' ? ' active' : ''}`}
               onClick={closeMenu}
@@ -302,19 +304,21 @@ function AuthenticatedWorkspace({
             <span>{t('مساحة العمل')}</span>
             <ChevronLeft size={14} />
             <strong>
-              {pathname === '/clients'
-                ? t('العملاء')
-                : pathname.startsWith('/proposals')
-                  ? t('عروض الأسعار')
-                  : pathname.startsWith('/projects')
-                    ? t('المشاريع')
-                    : pathname.startsWith('/invoices')
-                      ? t('الفواتير')
-                      : pathname === '/notifications'
-                        ? t('الإشعارات')
-                        : pathname.startsWith('/settings')
-                          ? t('الإعدادات')
-                          : t('نظرة عامة')}
+              {pathname.startsWith('/connections')
+                ? t('بتتعامل معاهم')
+                : pathname === '/clients'
+                  ? t('العملاء')
+                  : pathname.startsWith('/proposals')
+                    ? t('عروض الأسعار')
+                    : pathname.startsWith('/projects')
+                      ? t('المشاريع')
+                      : pathname.startsWith('/invoices')
+                        ? t('الفواتير')
+                        : pathname === '/notifications'
+                          ? t('الإشعارات')
+                          : pathname.startsWith('/settings')
+                            ? t('الإعدادات')
+                            : t('نظرة عامة')}
             </strong>
           </div>
           <WorkspaceActions />

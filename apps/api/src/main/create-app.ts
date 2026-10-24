@@ -1,4 +1,6 @@
 import type { PasswordRecovery } from '../modules/auth/application/password-recovery.js';
+import type { ManageClientAccess } from '../modules/portal/application/manage-client-access.js';
+import { createClientAccessRouter } from '../modules/portal/presentation/client-access.routes.js';
 import type { ChangePassword } from '../modules/auth/application/change-password.js';
 import { createPasswordChangeRouter } from '../modules/auth/presentation/password-change.routes.js';
 import { createRecoveryRouter } from '../modules/auth/presentation/password-recovery.routes.js';
@@ -68,6 +70,7 @@ export function createApp(
     sessions?: SessionEndpoints;
     google?: GoogleAuthEndpoints;
     portal?: ShareClientPortal;
+    clientAccess?: ManageClientAccess;
     notifications?: ManageNotifications;
     dashboard?: ReadWorkspaceOverview;
     search?: SearchWorkspace;
@@ -221,6 +224,19 @@ export function createApp(
       },
       createAuthenticationMiddleware(dependencies.sessions.authenticate),
       createDashboardRouter(dependencies.dashboard),
+    );
+  }
+  if (dependencies.clientAccess) {
+    if (!dependencies.sessions)
+      throw new Error('Client access requires authentication services');
+    app.use(
+      '/api/v1/client-access',
+      (_request, response, next) => {
+        response.setHeader('Cache-Control', 'no-store');
+        next();
+      },
+      createAuthenticationMiddleware(dependencies.sessions.authenticate),
+      createClientAccessRouter(dependencies.clientAccess, webOrigin),
     );
   }
   if (dependencies.portal) {

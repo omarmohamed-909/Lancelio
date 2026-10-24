@@ -8,6 +8,7 @@ import { useSession } from '../../auth/components/session-provider';
 import { WorkspaceShell } from '../../workspace/components/workspace-shell';
 import { useOwnerPortal } from '../hooks/use-owner-portal';
 import { PortalDocument } from './portal-document';
+import { OwnerClientInvitation } from './owner-client-invitation';
 export function OwnerPortalScreen({ clientId }: { clientId: string }) {
   return (
     <WorkspaceShell>
@@ -60,6 +61,7 @@ function Manage({ clientId }: { clientId: string }) {
           <p>{t('راجع اللي هيظهر، وبعدها أنشئ الرابط وابعته للعميل بنفسك.')}</p>
         </div>
       </div>
+      <OwnerClientInvitation clientId={clientId} />
       <section
         className="portal-controls"
         aria-label={t('إدارة رابط المتابعة')}

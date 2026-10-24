@@ -3,6 +3,8 @@ import { ApplicationError } from '../../domain/application-error.js';
 import type { ApplicationErrorCode } from '../../domain/application-error.js';
 
 const applicationStatuses: Record<ApplicationErrorCode, number> = {
+  CLIENT_INVITATION_UNAVAILABLE: 404,
+  CLIENT_EMAIL_VERIFICATION_REQUIRED: 403,
   GOOGLE_INVALID_CREDENTIALS: 401,
   GOOGLE_UNAVAILABLE: 503,
   GOOGLE_ACCOUNT_CONFLICT: 409,

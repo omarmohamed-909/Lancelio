@@ -4,6 +4,9 @@ import { ResendRecoveryMailer } from '../modules/auth/infrastructure/resend-reco
 import { createNotifications } from './create-notifications.js';
 import { createNotificationStateModel } from '../modules/notifications/infrastructure/notification-state-model.js';
 import { createPortal } from './create-portal.js';
+import { createClientAccess } from './create-client-access.js';
+import { createClientAccessModel } from '../modules/portal/infrastructure/client-access-model.js';
+import { ResendClientInvitation } from '../modules/portal/infrastructure/resend-client-invitation.js';
 import { createPortalModel } from '../modules/portal/infrastructure/portal-model.js';
 import { createDashboard } from './create-dashboard.js';
 import { createSearch } from './create-search.js';
@@ -108,6 +111,9 @@ export async function createApiRuntime(
     const portalModel = createPortalModel(database);
     await portalModel.createCollection();
     await portalModel.createIndexes();
+    const clientAccessModel = createClientAccessModel(database);
+    await clientAccessModel.createCollection();
+    await clientAccessModel.createIndexes();
     const notificationStates = createNotificationStateModel(database);
     await notificationStates.createCollection();
     await notificationStates.createIndexes();
@@ -159,6 +165,27 @@ export async function createApiRuntime(
           }
         : {}),
       assistant,
+      clientAccess: createClientAccess(
+        database,
+        clientAccessModel,
+        portalModel,
+        {
+          clients: clientModel.collection.name,
+          users: models.User.collection.name,
+          workspaces: models.Workspace.collection.name,
+          projects: projectModel.collection.name,
+          invoices: invoiceModels.Invoice.collection.name,
+          tasks: taskBoardModel.collection.name,
+          payments: paymentModel.collection.name,
+        },
+        environment.WELCOME_EMAIL_ENABLED
+          ? new ResendClientInvitation(
+              environment.RESEND_API_KEY!,
+              environment.EMAIL_FROM!,
+              environment.WEB_ORIGIN,
+            )
+          : null,
+      ),
       passwordChange: (
         await createPasswordChange(models, sessionModel, recovery.models.Job)
       ).service,

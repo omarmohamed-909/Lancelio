@@ -3,12 +3,14 @@ import { landingAr } from './landing';
 import { legalAr } from './legal';
 import { pwaAr } from './pwa';
 import { googleAuthAr } from './google-auth';
+import { connectionsAr } from './connections';
 export const ar = {
   ...assistantAr,
   ...landingAr,
   ...legalAr,
   ...pwaAr,
   ...googleAuthAr,
+  ...connectionsAr,
   'تم تحديث حالة المشروع إلى «{0}».': 'تم تحديث حالة المشروع إلى «{0}».',
   'دفتر العملاء | Lancelio': 'دفتر العملاء | Lancelio',
   'بوابة العميل | Lancelio': 'بوابة العميل | Lancelio',
