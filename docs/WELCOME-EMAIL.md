@@ -26,6 +26,7 @@ Production welcome delivery was enabled on **2026-10-24** after Resend verified 
 
 - The new account stores one private welcome record in the same transaction as signup. Google onboarding queues it only when creating a new user, after name/workspace confirmation. Existing accounts, ordinary sign-ins and first-time Google linking never enqueue another welcome.
 - Welcome records are created only while the feature is enabled. Turning it on later does not backfill old users. Turning it off prevents delivery and new records.
+- An owner-authorized historical batch must explicitly select a reviewed list of active account IDs with no welcome record. Queue these with `kind=existing` and a frozen recipient/workspace snapshot, using a conditional update so reruns cannot enqueue another welcome. This copy acknowledges an existing workspace rather than claiming a new signup. Operator workers may restrict claims to those approved IDs. Ordinary signup remains `kind=signup`; records predating message kinds default to the signup copy. Historical account language was not retained, so choose and review the batch language explicitly rather than guessing it from names.
 - The language is the explicit `ar`/`en` signup locale, with English as the API fallback. Recipient, name, workspace name and language are frozen so retries use the same content. User content is HTML-escaped. The email contains no password, session token, secret link or tracking pixel. The dashboard button is a normal authenticated navigation link.
 - On Vercel, the official `waitUntil` integration drains one job after an HTTP response finishes; signup does not await the email provider. Later requests can retry due jobs. There is no timer assumed to survive a serverless response. During an idle period, retries wait for another request; an optional independent worker (`npm run start:recovery-worker --workspace @lancelio/api`) drains both welcome and recovery queues continuously.
 - A Mongo lease prevents concurrent workers from claiming the same job. Network/429/5xx failures back off from 30 seconds to five minutes; permanent provider failures stop retries. Only active users whose current email matches the queued recipient are eligible.
@@ -58,6 +59,9 @@ Homepage ownership was verified in Search Console on **2026-10-24**. The Google 
 ```sh
 npm run test --workspace @lancelio/api -- tests/welcome-email.test.ts tests/welcome-email.integration.test.ts tests/google-auth.integration.test.ts tests/serverless.test.ts
 npm run test:e2e -- tests/auth.spec.ts tests/google-auth.spec.ts
+npm run test:email-render
 ```
 
 The package overrides and patched `fast-uri` development pin keep the email runtime's transitive validation dependencies on the audited versions until upstream dependency pins are updated.
+
+Email render checks embed only the body fragment in a host with the opposite direction and a fallback serif font, as webmail can remove the original html/body wrappers. They verify paragraph alignment, local typography, step-column order, mixed Arabic/Latin names, and mobile overflow for both message kinds and languages. Direction, alignment, and font styles therefore live on the content wrapper, tables, and text cells. See [Gmail's supported CSS](https://developers.google.com/workspace/gmail/design/css) and [Twilio's cross-platform HTML email guidance](https://www.twilio.com/docs/sendgrid/ui/sending-email/cross-platform-html-design).

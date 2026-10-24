@@ -6,12 +6,16 @@ import type {
 import type { RegistrationModels } from './registration-models.js';
 
 export class MongoWelcomeStore implements WelcomeStore {
-  constructor(private readonly users: RegistrationModels['User']) {}
+  constructor(
+    private readonly users: RegistrationModels['User'],
+    private readonly userIds?: readonly string[],
+  ) {}
   async claim(now: Date) {
     const lease = randomUUID();
     const user = await this.users
       .findOneAndUpdate(
         {
+          ...(this.userIds ? { _id: { $in: this.userIds } } : {}),
           status: 'active',
           'welcomeEmail.state': 'pending',
           'welcomeEmail.expiresAt': { $gt: now },
@@ -42,6 +46,8 @@ export class MongoWelcomeStore implements WelcomeStore {
       userId: user._id.toHexString(),
       lease,
       attempts: value.attempts ?? 1,
+      kind:
+        value.kind === 'existing' ? ('existing' as const) : ('signup' as const),
       name: value.name,
       email: value.email,
       workspaceName: value.workspaceName,

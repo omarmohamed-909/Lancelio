@@ -1,5 +1,6 @@
 export type WelcomeLanguage = 'ar' | 'en';
 export interface WelcomeMessage {
+  kind?: 'signup' | 'existing';
   name: string;
   email: string;
   workspaceName: string;

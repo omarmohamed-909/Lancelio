@@ -20,6 +20,7 @@ import {
 import { createSessionModel } from '../src/modules/auth/infrastructure/session-model.js';
 import { MongoWelcomeStore } from '../src/modules/auth/infrastructure/mongo-welcome-store.js';
 import { WelcomeEmail } from '../src/modules/auth/application/welcome-email.js';
+import { newWelcomeEmail } from '../src/modules/auth/infrastructure/welcome-email-model.js';
 import { WelcomeDeliveryError } from '../src/modules/auth/application/ports/welcome-email.js';
 import type { WelcomeMailer } from '../src/modules/auth/application/ports/welcome-email.js';
 import { mongoBinaryOptions } from './helpers/mongo-binary.js';
@@ -133,6 +134,70 @@ describe('durable welcome delivery', () => {
     expect(send).toHaveBeenCalledTimes(2);
     expect(send.mock.calls[0]![1]).toBe(send.mock.calls[1]![1]);
     expect(send.mock.calls[1]![0].name).toBe('Omar');
+  });
+  it('keeps an explicitly queued existing-account welcome distinct and does not queue it twice', async () => {
+    const disabled = await createAuthentication(
+      models,
+      sessions,
+      'welcome-test-signing-secret-at-least-32-characters',
+      false,
+      { now: () => now },
+    );
+    const result = await disabled.register.execute({ ...input, locale: 'ar' });
+    const filter = {
+      _id: result.identity.user.id,
+      status: 'active' as const,
+      welcomeEmail: null,
+    };
+    const update = {
+      $set: {
+        welcomeEmail: newWelcomeEmail(
+          input.name,
+          input.email,
+          input.workspaceName,
+          'ar',
+          now,
+          'existing',
+        ),
+      },
+    };
+    expect((await models.User.updateOne(filter, update)).modifiedCount).toBe(1);
+    expect((await models.User.updateOne(filter, update)).modifiedCount).toBe(0);
+    const send = vi.fn<WelcomeMailer['send']>().mockResolvedValue(undefined);
+    await worker({ send }).deliverNext();
+    expect(send.mock.calls[0]?.[0]).toMatchObject({
+      kind: 'existing',
+      language: 'ar',
+    });
+    expect(await worker({ send }).deliverNext()).toBe(false);
+    expect(send).toHaveBeenCalledTimes(1);
+  });
+  it('delivers queued records created before message kinds existed as signup welcomes', async () => {
+    await signup();
+    await models.User.updateOne({}, { $unset: { 'welcomeEmail.kind': 1 } });
+    const send = vi.fn<WelcomeMailer['send']>().mockResolvedValue(undefined);
+    await worker({ send }).deliverNext();
+    expect(send.mock.calls[0]?.[0]).toMatchObject({ kind: 'signup' });
+  });
+  it('limits an operator worker to the approved account IDs', async () => {
+    const first = await signup();
+    await auth.register.execute({
+      ...input,
+      email: 'another@example.com',
+      locale: 'ar',
+    });
+    const send = vi.fn<WelcomeMailer['send']>().mockResolvedValue(undefined);
+    const scoped = new WelcomeEmail(
+      new MongoWelcomeStore(models.User, [first.body.data.user.id]),
+      { send },
+      { now: () => now },
+    );
+    await scoped.deliverNext();
+    expect(await scoped.deliverNext()).toBe(false);
+    expect(send).toHaveBeenCalledTimes(1);
+    expect(send.mock.calls[0]?.[0].email).toBe(input.email);
+    expect(await worker({ send }).deliverNext()).toBe(true);
+    expect(send.mock.calls[1]?.[0].email).toBe('another@example.com');
   });
   it('keeps the same delivery key after a lost database acknowledgement', async () => {
     await signup();

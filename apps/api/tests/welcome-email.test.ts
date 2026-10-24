@@ -11,6 +11,29 @@ const message = {
 };
 describe('welcome email content and delivery', () => {
   it.each(['ar', 'en'] as const)(
+    'welcomes existing %s accounts without claiming a new signup or a first client',
+    (language) => {
+      const existing = welcomeTemplate(
+        {
+          ...message,
+          language,
+          kind: 'existing',
+          workspaceName: '<Old studio>',
+        },
+        'https://www.lancelio.tech',
+      );
+      expect(existing.html).toContain('&lt;Old studio&gt;');
+      expect(existing.text).toContain('https://www.lancelio.tech/dashboard');
+      expect(existing.text).not.toMatch(
+        /first client|account was created|بقت جاهزة|أول عميل|بعد إنشاء/iu,
+      );
+      expect(existing.subject).not.toBe(
+        welcomeTemplate({ ...message, language }, 'https://www.lancelio.tech')
+          .subject,
+      );
+    },
+  );
+  it.each(['ar', 'en'] as const)(
     'renders %s with escaped user content, a normal dashboard link and a plain-text alternative',
     (language) => {
       const content = welcomeTemplate(

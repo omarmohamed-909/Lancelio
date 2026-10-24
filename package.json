@@ -12,6 +12,7 @@
   "scripts": {
     "assistant:check": "npm run assistant:check --workspace @lancelio/api --",
     "test:localization": "node --import tsx --test tools/localization.test.ts",
+    "test:email-render": "node --import tsx --test tools/welcome-email-render.test.ts",
     "dev:api": "npm run dev --workspace @lancelio/api",
     "dev:web": "npm run dev --workspace @lancelio/web",
     "lint": "eslint . --max-warnings=0",

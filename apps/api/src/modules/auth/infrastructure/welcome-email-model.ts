@@ -3,6 +3,12 @@ import type { WelcomeLanguage } from '../application/ports/welcome-email.js';
 
 export const welcomeEmailSchema = new Schema(
   {
+    kind: {
+      type: String,
+      enum: ['signup', 'existing'],
+      default: 'signup',
+      required: true,
+    },
     state: {
       type: String,
       enum: ['pending', 'sent', 'failed'],
@@ -29,8 +35,10 @@ export function newWelcomeEmail(
   workspaceName: string,
   language: WelcomeLanguage,
   now: Date,
+  kind: 'signup' | 'existing' = 'signup',
 ) {
   return {
+    kind,
     state: 'pending' as const,
     name,
     email,
