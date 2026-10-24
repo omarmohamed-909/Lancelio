@@ -2,6 +2,8 @@
 
 Welcome emails are optional and **disabled by default**. Google sign-in continues using the currently configured client until a separate Lancelio client is ready and its public client ID is installed. No existing Google project or OAuth client needs to be renamed or deleted.
 
+Production welcome delivery was enabled on **2026-10-24** after Resend verified `updates.lancelio.tech` in Ireland (`eu-west-1`). The sender is **Lancelio <hello@updates.lancelio.tech>**. A Sending access key restricted to this domain is stored as a Production secret on `lancelio-api`; the feature flag and sender are Production config values. One owner-approved Arabic preview was accepted and subsequently reported **Delivered** by Resend. This does not confirm inbox placement or a recipient read.
+
 ## Enable email
 
 1. Create a [Resend account](https://resend.com/signup). Add a sending subdomain you control, for example `updates.lancelio.tech`, and publish the exact SPF/DKIM records supplied by the dashboard. Follow [Resend's domain instructions](https://resend.com/docs/dashboard/domains/introduction). Do not replace existing website records or root-domain mail records.
@@ -48,6 +50,8 @@ Only after the new configuration is ready, replace `GOOGLE_CLIENT_ID` on the API
 The dedicated **Lancelio Web** client is `284374535296-spldeq3ck7ddahll7pm4touo15615q5u.apps.googleusercontent.com`. Its audience is External / In production. The approved Google support email is `om1478711@gmail.com`; the site's support and developer contact remain `omar.m.ombark@gmail.com`.
 
 Google requires homepage ownership before showing the saved branding. The public file `apps/web/public/google385212f48908aef7.html` supports Search Console verification of `https://www.lancelio.tech/` for the approved owner `om1478711@gmail.com`. Keep the file after verification. Google's branding screen asks for 24 hours after ownership verification before requesting another review; production availability alone does not mean the name/logo are verified or visible. Check the Branding / Verification Center result separately.
+
+Homepage ownership was verified in Search Console on **2026-10-24**. The Google branding review remains a separate follow-up after that waiting period.
 
 ## Verification
 
