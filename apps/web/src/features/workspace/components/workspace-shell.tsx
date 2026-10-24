@@ -172,7 +172,6 @@ function AuthenticatedWorkspace({
           </div>
           <span className="nav-label">{t('أدوات العمل')}</span>
           <nav aria-label={t('التنقل الرئيسي')}>
-            <ConnectionsLink onNavigate={closeMenu} />
             <Link
               className={`nav-item${pathname === '/dashboard' ? ' active' : ''}`}
               onClick={closeMenu}
@@ -229,6 +228,7 @@ function AuthenticatedWorkspace({
               <Wallet size={19} />
               {t('الفواتير')}{' '}
             </Link>
+            <ConnectionsLink onNavigate={closeMenu} />
             <Link
               className={
                 'nav-item' + (pathname.startsWith('/settings') ? ' active' : '')
