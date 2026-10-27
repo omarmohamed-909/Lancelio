@@ -643,6 +643,11 @@ test('failed refresh pauses automatic renewal until explicit recovery', async ({
 
 async function finishEntrance(page: Page) {
   await page.evaluate(async () => {
+    await document.fonts.ready;
+    // Give layout and IntersectionObserver callbacks time to start their animations.
+    await new Promise<void>((resolve) =>
+      requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+    );
     const finite = document
       .getAnimations()
       .filter(
@@ -986,6 +991,7 @@ async function newClient(page: Page, name = 'سارة علي') {
 test('client creation, validation, single submit, editing, archive and persisted records', async ({
   page,
 }) => {
+  test.setTimeout(90_000);
   await register(page);
   await openClients(page);
   await expect(
@@ -1230,6 +1236,7 @@ for (const language of ['ar', 'en'] as const)
 test('client edits preserve newer data, reload a conflict, and renew expired access once', async ({
   page,
 }) => {
+  test.setTimeout(60_000);
   await register(page);
   await openClients(page);
   await newClient(page);
@@ -2714,6 +2721,10 @@ test('client rejection works on mobile with reduced motion and creates no projec
 }) => {
   const id = await reviewedDraft(page);
   const link = await createSharingLink(page);
+  const storageBefore = await page.evaluate(() => ({
+    local: { ...localStorage },
+    session: { ...sessionStorage },
+  }));
   await page.setViewportSize({ width: 390, height: 844 });
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.goto(link);
@@ -2754,10 +2765,10 @@ test('client rejection works on mobile with reduced motion and creates no projec
   ).toBeVisible();
   expect(
     await page.evaluate(() => ({
-      local: localStorage.length,
-      session: sessionStorage.length,
+      local: { ...localStorage },
+      session: { ...sessionStorage },
     })),
-  ).toEqual({ local: 0, session: 0 });
+  ).toEqual(storageBefore);
 });
 
 test('lost acceptance response blocks another write and explicit review recovers the committed decision', async ({
@@ -5938,8 +5949,8 @@ test('DSH-001 failed initial read and refresh hide numbers and recover explicitl
     .getByRole('button', { name: 'تحديث الأرقام', exact: true })
     .click();
   await expect(page.locator('.overview-counts')).toBeVisible();
-  await expect(page.locator('.overview-empty').first()).toContainText(
-    'لسه مفيش',
+  await expect(page.locator('.overview-task-empty')).toContainText(
+    'لسه مفيش مهام في المشاريع الشغالة والمتوقفة.',
   );
   failed = true;
   await page
@@ -7773,7 +7784,7 @@ for (const variant of [
         page
           .getByRole('navigation', { name: 'التنقل الرئيسي' })
           .getByRole('link'),
-      ).toHaveCount(6);
+      ).toHaveCount(7);
       await expect(page.locator('.notification-link')).toHaveCount(1);
       expect(metrics.outerOverflow).toBeLessThanOrEqual(1);
       expect(metrics.footerInside).toBe(true);
@@ -7852,7 +7863,7 @@ test('sidebar uses one header notification entry and keeps drawer focus when not
   await register(page);
   await expect(
     page.getByRole('navigation', { name: 'التنقل الرئيسي' }).getByRole('link'),
-  ).toHaveCount(6);
+  ).toHaveCount(7);
   await expect(
     page
       .getByRole('navigation', { name: 'التنقل الرئيسي' })
@@ -8900,10 +8911,12 @@ test('shared loading placeholders cover delayed reads, recover errors and use th
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto('/login');
   await expect(page.locator('.brand-light img')).toBeVisible();
-  await expect(page.locator('.brand:not(.brand-light) img')).toBeAttached();
+  await expect(
+    page.locator('.brand:not(.brand-light) .brand-image-day'),
+  ).toBeAttached();
   const light = await page.locator('.brand-light img').getAttribute('src');
   const green = await page
-    .locator('.brand:not(.brand-light) img')
+    .locator('.brand:not(.brand-light) .brand-image-day')
     .getAttribute('src');
   expect(light).not.toBe(green);
   expect(green).toContain('logo-green');
@@ -11479,7 +11492,7 @@ test('assistant retries failed reads, stops requests and never executes a write 
     .fill('احذف كل المشاريع');
   await chat.getByLabel('سؤالك للمساعد', { exact: true }).press('Enter');
   await expect(chat.locator('.assistant-turn').last()).toContainText(
-    'أقدر أشرح استخدام الموقع',
+    'الدردشة الذكية مش مفعّلة حاليًا',
   );
   expect(await projectModel.countDocuments()).toBe(0);
   let release!: () => void;

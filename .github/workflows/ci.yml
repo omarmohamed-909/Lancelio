@@ -23,4 +23,5 @@ jobs:
           MONGODB_TOOLS_DIRECTORY: ${{ github.workspace }}/.cache/database-tools/mongodb-database-tools-ubuntu2404-x86_64-100.19.1/bin
       - run: npm exec --workspace @lancelio/web -- playwright install --with-deps chromium firefox webkit
       - run: npm run test:e2e
+      - run: npm run test:pwa
       - run: npm run test:release

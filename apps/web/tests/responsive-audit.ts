@@ -104,6 +104,14 @@ export async function inspectResponsiveLayout(
           element.closest('[hidden], [inert]')
         )
           continue;
+        // Firefox still reports boxes for descendants of a closed details element.
+        const closedDetails = element.closest('details:not([open])');
+        if (
+          closedDetails &&
+          closedDetails !== element &&
+          !closedDetails.querySelector(':scope > summary')?.contains(element)
+        )
+          continue;
         const table = element.closest('.proposal-table-wrap');
         // Tables may scroll locally; their host must still fit the page.
         if (table && table !== element) continue;

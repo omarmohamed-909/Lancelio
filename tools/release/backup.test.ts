@@ -255,9 +255,20 @@ test(
           await restoredInvoices.Counter.findOne().lean(),
           counterBefore,
         );
+        const sourceIndexes = await invoices.Invoice.collection.indexes();
+        // Index listing order can change on restore; compound key order must not.
+        const indexDefinitions = (indexes: typeof sourceIndexes) =>
+          indexes
+            .map(({ key, ...definition }) => ({
+              ...definition,
+              key: Object.entries(key),
+            }))
+            .sort((left, right) =>
+              (left.name ?? '').localeCompare(right.name ?? ''),
+            );
         assert.deepEqual(
-          await restoredInvoices.Invoice.collection.indexes(),
-          await invoices.Invoice.collection.indexes(),
+          indexDefinitions(await restoredInvoices.Invoice.collection.indexes()),
+          indexDefinitions(sourceIndexes),
         );
         for (const name of [
           'authsessions',
